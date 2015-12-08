@@ -1,9 +1,14 @@
-### An R implementation of SAX, VSM, and SAX-VSM
+### R (Rcpp) implementation of SAX, HOT-SAX, VSM, and SAX-VSM
 
-[![Build Status](https://travis-ci.org/jMotif/jmotif-R.svg?branch=master)](https://travis-ci.org/jMotif/jmotif-R) [![codecov.io](http://codecov.io/github/jMotif/jmotif-R/coverage.svg?branch=master)](http://codecov.io/github/jMotif/jmotif-R?branch=master)
+[![Build Status](https://travis-ci.org/jMotif/jmotif-R.svg?branch=master)](https://travis-ci.org/jMotif/jmotif-R)
+[![codecov.io](http://codecov.io/github/jMotif/jmotif-R/coverage.svg?branch=master)](http://codecov.io/github/jMotif/jmotif-R?branch=master)
+[![CRAN](http://www.r-pkg.org/badges/version/jmotif)](http://cran.rstudio.com/package=jmotif)
 [![License](http://img.shields.io/:license-gpl2-green.svg)](http://www.gnu.org/licenses/gpl-2.0.html)
+[![Downloads](http://cranlogs.r-pkg.org/badges/jmotif?color=brightgreen)](https://github.com/jMotif/jmotif-R)
 
-Implements a set of R functions for time series mining based on Symbolic Aggregate approXimation, i.e. SAX. Specifically, this library implements the full stack of tools needed for SAX-VSM [5] -- an algorithm for interpretable time series classification and characteristic patterns discovery, among which are the time series z-Normalization [1], PAA [2], SAX [3], and VSM [4].
+Implements a set of R functions for time series pattern mining based on Symbolic Aggregate approXimation, i.e. SAX. 
+
+Specifically, this library implements the full stack of tools needed for SAX-VSM [5] -- an algorithm for interpretable time series classification and characteristic patterns discovery -- among which are the time series z-Normalization [1], PAA [2], SAX [3], and VSM [4]. In addition, implements HOT-SAX -- the time series discord (time series anomaly) discovery algorithm [6].
 
 [1] Dina Goldin and Paris Kanellakis,
 [*On similarity queries for time-series data: Constraint specification and implementation*](http://dl.acm.org/citation.cfm?id=726176),
@@ -18,37 +23,39 @@ Knowledge and information Systems, 3(3), 263-286. (2001)
 
 [4] Salton, G., Wong, A., Yang., C., [*A vector space model for automatic indexing*](http://dl.acm.org/citation.cfm?id=361220), Commun. ACM 18, 11, 613–620, 1975.
 
-[5] Senin, P.; Malinchik, S., 
+[5] Senin Pavel and Malinchik Sergey, 
 [*SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.*](https://scholar.google.fr/citations?view_op=view_citation&citation_for_view=pVTcEd8AAAAJ:5nxA0vEk-isC),
 Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
+
+[6] Keogh, E., Lin, J., Fu, A.,
+[*HOT SAX: Efficiently finding the most unusual time series subsequence*](http://www.cs.ucr.edu/~eamonn/HOT%20SAX%20%20long-ver.pdf),
+In Proc. ICDM (2005)
 
 #### 0.0 Installation
     install.packages("devtools")
     library(devtools)
     install_github('jMotif/jmotif-R')
 
-#### 1.0 z-Normalization (`znorm(ts, threshold)`)
-Z-normalization is a typical time series data preprocessing step proposed by Goldin & Kannelakis whose goal is to enable the downstream analyses to focus on the time series structural similarities/differences instead of their amplitude.
+#### 1.0 z-Normalization
+Z-normalization (`znorm(ts, threshold)`) is a common in time series pattern mining preprocessing step proposed by Goldin & Kannelakis whose goal is to allow the downstream analyses to focus on the time series structural similarities/differences instead of the signal amplitude.
 
     x = seq(0, pi*4, 0.02)
     y = sin(x) * 5 + rnorm(length(x))
 
-    plot(x, y, type="l", col="blue", 
-      main="A scaled sine wave with a random noise and its z-normalization")
+    plot(x, y, type="l", col="blue", main="A scaled sine wave with a random noise and its z-normalization")
 
-    lines(x, *znorm(y, 0.01)*, type="l", col="red")
+    lines(x, znorm(y, 0.01), type="l", col="red")
     abline(h=c(1,-1), lty=2, col="gray50")
-    legend(0, -4, c("scaled sine wave","z-normalized wave"),
-      lty=c(1,1), lwd=c(1,1), col=c("blue","red"), cex=0.8)
+    legend(0, -4, c("scaled sine wave","z-normalized wave"), lty=c(1,1), lwd=c(1,1), 
+                                                                    col=c("blue","red"), cex=0.8)
       
 ![z-normalization of a scaled sine wave](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/fig_znorm.png)
 
-#### 2.0 Piecewise Aggregate Approximation (i.e., PAA) (`paa(ts, paa_num)`)
-PAA is designed to reduces the time series dimensionality by averaging values of equal-sized segments of the original time series. In the following example the time series of dimensionality 8 points is reduced to 3 points.
+#### 2.0 Piecewise Aggregate Approximation (i.e., PAA)
+PAA (`paa(ts, paa_num)`) is designed to reduce the input time series dimensionality by splitting it into equally-sized segments (PAA size) and averaging values of points within each segment. Typically, PAA is applied to z-Normalized time series. In the following example the time series of dimensionality 8 points is reduced to 3 points.
 
     y = c(-1, -2, -1, 0, 2, 1, 1, 0)
-    plot(y, type="l", col="blue",
-        main="8-points time series and it PAA transform into 3 points")
+    plot(y, type="l", col="blue", main="8-points time series and it PAA transform into 3 points")
 
     points(y, pch=16, lwd=5, col="blue")
 
@@ -67,8 +74,10 @@ PAA is designed to reduces the time series dimensionality by averaging values of
       
 ![PAA transform of an 8-points time series into 3 points](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/fig_paa83.png)
 
-#### 3.0 SAX transform (`ts2string(ts, a_size)`)
-SAX transform facilitates the symbolic discretization of time series data enabling the application of numerous algorithms for discrete data analysis to continuous time series data. In a nutshell, SAX transforms each of the input time series points into a letter. Typically, SAX applied to time series of reduced with PAA dimensionality in order to accelerate the time series search by their indexing in the symbolic space. Before processing with PAA and SAX, time series are usually z-Normalized.
+#### 3.0 SAX transform
+SAX transform (`series_to_string(ts, alphabet_size)`) is a discretization algorithm which transforms a sequence of rational values (time series points) into a sequence of discrete values - symbols taken from a finite alphabet. This procedure enables the application of numerous algorithms for discrete data analysis to continuous time series data. 
+
+Typically, SAX applied to time series of reduced with PAA dimensionality, which effectively yields a low-dimensional, discrete representation of the input time series which preserves (to some extent) its structural characteristics. By employing this representation it is possible to design efficient algorithms for common time series pattern mining tasks as one can rely on the indexing of data in symbolic space. Note, that before processing with PAA and SAX, time series are z-Normalized.
 
 The figure below illustrates the PAA+SAX procedure: 8 points time series is converted into 3-points PAA representation at the first step, PAA values are converted into letters by using 3 letters alphabet at the second step.
 
@@ -88,13 +97,13 @@ The figure below illustrates the PAA+SAX procedure: 8 points time series is conv
       
 ![an application of SAX transform (3 letters word size and 3 letters alphabet size) to an 8 points time series ](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/fig_sax83.png)
 
-#### 4.0 Time series SAX transform via sliding window (`sax_via_window(ts, win_size, paa_size, alp_size, nr_strategy, n_threshold)`)
-Another common way to use SAX is to apply the procedure to sliding window-extracted subseries. This technique is used in SAX-VSM, where it unables the conversion of time series into the word bags.
+#### 4.0 Time series SAX transform via sliding window 
+Another common way to use SAX is to apply the procedure to sliding window-extracted subseries (`sax_via_window(ts, win_size, paa_size, alp_size, nr_strategy, n_threshold)`). This technique is used in SAX-VSM, where it unables the conversion of a time series into the word bags. Note, the use of a numerosity reduction strategy.
 
 #### 5.0 SAX-VSM classifier
 While the parameters optimization sampler discussed in our paper is yet to be coded, the current code provides a reference implementation of SAX-VSM classification and a characteristic patterns dicovery framework.
 
-I use the one of [standard UCR time series datasets](http://www.cs.ucr.edu/~eamonn/time_series_data/) to illustrate the code use. The Cylinder-Bell-Funnel dataset (Saito, N: *Local feature extraction and its application using a library of bases.* PhD thesis, Yale University (1994)) consists of three time series classes. The dataset is embedded into the `jmotif` library:  
+I use the one of [standard UCR time series datasets](http://www.cs.ucr.edu/~eamonn/time_series_data/) to illustrate the implemented approach. The Cylinder-Bell-Funnel dataset (Saito, N: *Local feature extraction and its application using a library of bases.* PhD thesis, Yale University (1994)) consists of three time series classes. The dataset is embedded into the `jmotif` library:  
 
     # load Cylinder-Bell-Funnel data
     data("CBF")
@@ -119,12 +128,9 @@ At the first step, each class of the training data needs to be transformed into 
 
     # convert the train classes to wordbags (the dataset has three labels: 1, 2, 3)
     #
-    cylinder <- manyseries_to_wordbag(CBF[["data_train"]][CBF[["labels_train"]] == 1,], 
-                                                                w, p, a, "exact", 0.01)
-    bell <- manyseries_to_wordbag(CBF[["data_train"]][CBF[["labels_train"]] == 2,],
-                                                                w, p, a, "exact", 0.01)
-    funnel <- manyseries_to_wordbag(CBF[["data_train"]][CBF[["labels_train"]] == 3,],
-                                                                w, p, a, "exact", 0.01)
+    cylinder <- manyseries_to_wordbag(CBF[["data_train"]][CBF[["labels_train"]] == 1,], w, p, a, "exact", 0.01)
+    bell <- manyseries_to_wordbag(CBF[["data_train"]][CBF[["labels_train"]] == 2,], w, p, a, "exact", 0.01)
+    funnel <- manyseries_to_wordbag(CBF[["data_train"]][CBF[["labels_train"]] == 3,], w, p, a, "exact", 0.01)
 
 each of these bags is a two-columns data frame:
 
@@ -142,8 +148,7 @@ each of these bags is a two-columns data frame:
 
     # compute tf*idf weights for three bags
     #
-    tfidf = bags_to_tfidf(
-          list("cylinder" = cylinder, "bell" = bell, "funnel" = funnel) )
+    tfidf = bags_to_tfidf( list("cylinder" = cylinder, "bell" = bell, "funnel" = funnel) )
 
 this yields a data frame of four variables: the words which are "important" in `TF*IDF` terms (i.e. not presented at least in one of the bags) and their class-corresponding weights:
 
@@ -177,8 +182,7 @@ and to visualize those on data:
     #
     sample = (CBF[["data_train"]][CBF[["labels_train"]] == 3,])[1,]
     sample_bag = sax_via_window(sample, w, p, a, "exact", 0.01)
-    df = data.frame(index = as.numeric(names(sample_bag)),
-                   words = unlist(sample_bag))
+    df = data.frame(index = as.numeric(names(sample_bag)), words = unlist(sample_bag))
                    
     # weight the found patterns
     #
@@ -188,7 +192,7 @@ and to visualize those on data:
       pattern = weighted_patterns[i,]
       for(j in 1:w){
         specificity[pattern$index+j] = specificity[pattern$index+j] +
-        pattern$funnel - pattern$bell - pattern$cylinder
+                                            pattern$funnel - pattern$bell - pattern$cylinder
       }
     }
 
@@ -211,6 +215,10 @@ and to visualize those on data:
         axis.ticks.y = element_blank())
     
 ![interpretable time series representation](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/fig-weighted_funnel.png)    
+
+![interpretable time series representation](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/fig-weighted_bell.png)
+
+![interpretable time series representation](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/fig-weighted_cylinder.png)    
     
 ##### 5.3 SAX-VSM classification
 Using the weighted patterns obtained at the previous step and the cosine similarity measure it is also easy to classify unlabeled data using the `cosine_sim` function which accepts a list of two elements: the bag-of-words representation of the input time series (constructed with `series_to_wordbag` function) and the `TF*IDF` weights table obtained at the previous step:
@@ -235,3 +243,64 @@ Using the weighted patterns obtained at the previous step and the cosine similar
     # findout which time series were misclassified
     #
     which((labels_test != labels_predicted))
+
+#### 6.0 HOT-SAX algorithm for time series discord discovery
+Given a time series _T_, its subsequence _C_  is called *discord* if it has the largest Euclidean distance to its nearest non-self match. Thus, time series discord is a subsequence within a time series that is _maximally different_ to all the rest of subsequences in the time series, and therefore naturaly captures the most unusual subsequence within the time series.
+
+The library embeds the ECG0606 dataset taken from [PHYSIONET FTP](http://physionet.org/physiobank/database/qtdb/). The raw data was transformed with their `rdsamp` utility 
+
+    rdsamp -r sele0606 -f 120.000 -l 60.000 -p -c | sed -n '701,3000p' >0606.csv
+
+and conists of 15 heartbeats:
+
+![ECG0606 data](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/ecg0606.png)
+
+We know, that the third heartbeat of this dataset contains the true anomaly as it was discussed in HOTSAX paper by Eamonn Keogh, Jessica Lin, and Ada Fu. Note, that the authors were specifically interested in finding anomalies which are shorter than a regular heartbeat following a suggestion given by the domain expert: ''_We conferred with cardiologist, Dr. Helga Van Herle M.D., who informed us that heart irregularities can sometimes manifest themselves at scales significantly shorter than a single heartbeat_.'' Figure 13 of the paper further explains the nature of this true anomaly:
+
+![ECG0606 clusters](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/demo-ecg0606_cluster.png)
+
+Two implementation of discord discovery provided within the code: the brute-force didcord discovery and HOT-SAX. 
+
+The brute-force takes 14 seconds to discover 5 discords in the data (with early-abandoning distance):
+
+    > lineprof( find_discords_brute_force(ecg0606, 100, 5) )
+    Reducing depth to 2 (from 18)
+        time    alloc  release dups                    ref            src
+    1 13.951 6211.306 6209.214    2                ".Call" .Call         
+    2  0.001    0.000    0.000   44 c(".Call", "tryCatch") .Call/tryCatch
+
+whereas HOT-SAX finishes under a second:
+
+    > lineprof( find_discords_hot_sax(ecg0606, 100, 4, 4, 0.01, 5) )
+       time   alloc release dups     ref   src
+    1 0.637 249.577 245.077   55 ".Call" .Call
+
+The discords returned as a data frame sorted by the position:
+
+    > discords = find_discords_hot_sax(ecg0606, 100, 4, 4, 0.01, 5)
+    > discords
+      nn_distance position
+    1   0.4787745       37
+    2   0.4177020      188
+    3   1.5045847      411
+    4   0.4437060      539
+    5   0.4437060     1566
+    
+The best discord is the third one at 411:
+
+    discords = find_discords_hot_sax(ecg0606, 100, 4, 4, 0.01, 5)
+    plot(ecg0606, type = "l", col = "cornflowerblue", main = "ECG 0606")
+    lines(x=c(discords[3,2]:(discords[3,2]+100)),
+        y=ecg0606[discords[3,2]:(discords[3,2]+100)], col="red")
+
+![ECG0606 clusters](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/ecg0606_discord.png)
+
+    > library(dplyr)
+    > arrange(discords,desc(nn_distance))
+      nn_distance position
+    1   1.5045847      411
+    2   0.4787745       37
+    3   0.4437060      539
+    4   0.4437060     1566
+    5   0.4177020      188
+

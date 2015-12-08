@@ -1,22 +1,23 @@
 Package: jmotif
-Version: 1.0.1
+Version: 1.0.2
 Title: Tools for Time Series Analysis Based on Symbolic Aggregate
         Dicretization
-Description: A set of tools based on time series symbolic discretization and vector space
-   model that aids in time series characteristic pattern discovery and facilitates
-   interpretable time series classification.
+Description: Implements z-normalization, SAX, HOT-SAX, VSM, and SAX-VSM algorithms
+    facilitating time series motif (i.e., recurrent pattern), discord (i.e., anomaly),
+    and characteristic pattern discovery along with interpretable time series classification.
 Authors@R: person("Pavel", "Senin", , "seninp@gmail.com", c("aut", "cre"))
 URL: https://github.com/jMotif/jmotif-R
 BugReports: https://github.com/jMotif/jmotif-R/issues
-Depends: R (>= 3.1.0)
-Imports: stats, Rcpp (>= 0.11.0)
+Depends: R (>= 3.1.0), Rcpp (>= 0.11.1)
+Imports: stats
 Suggests: testthat
-LinkingTo: Rcpp
+LinkingTo: Rcpp, RcppArmadillo
 LazyData: true
 License: GPL-2
-NeedsCompilation: yes
-Packaged: 2015-10-19 19:44:25 UTC; psenin
+RoxygenNote: 5.0.1
+Packaged: 2015-12-08 09:57:41 UTC; psenin
 Author: Pavel Senin [aut, cre]
 Maintainer: Pavel Senin <seninp@gmail.com>
+NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2015-10-19 23:15:20
+Date/Publication: 2015-12-08 13:02:39
