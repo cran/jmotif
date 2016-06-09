@@ -1,9 +1,9 @@
 Package: jmotif
-Version: 1.0.2
-Title: Tools for Time Series Analysis Based on Symbolic Aggregate
-        Dicretization
-Description: Implements z-normalization, SAX, HOT-SAX, VSM, and SAX-VSM algorithms
-    facilitating time series motif (i.e., recurrent pattern), discord (i.e., anomaly),
+Version: 1.0.2.900
+Title: Time Series Analysis Toolkit Based on Symbolic Aggregate
+        Dicretization, i.e. SAX
+Description: Implements time series z-normalization, SAX, HOT-SAX, VSM, SAX-VSM, RePair, and RRA
+    algorithms facilitating time series motif (i.e., recurrent pattern), discord (i.e., anomaly),
     and characteristic pattern discovery along with interpretable time series classification.
 Authors@R: person("Pavel", "Senin", , "seninp@gmail.com", c("aut", "cre"))
 URL: https://github.com/jMotif/jmotif-R
@@ -13,11 +13,12 @@ Imports: stats
 Suggests: testthat
 LinkingTo: Rcpp, RcppArmadillo
 LazyData: true
+SystemRequirements: C++11
 License: GPL-2
 RoxygenNote: 5.0.1
-Packaged: 2015-12-08 09:57:41 UTC; psenin
+NeedsCompilation: yes
+Packaged: 2016-06-08 23:41:46 UTC; psenin
 Author: Pavel Senin [aut, cre]
 Maintainer: Pavel Senin <seninp@gmail.com>
-NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2015-12-08 13:02:39
+Date/Publication: 2016-06-09 05:49:06
