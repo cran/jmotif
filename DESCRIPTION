@@ -1,5 +1,5 @@
 Package: jmotif
-Version: 1.0.2.900
+Version: 1.0.3
 Title: Time Series Analysis Toolkit Based on Symbolic Aggregate
         Dicretization, i.e. SAX
 Description: Implements time series z-normalization, SAX, HOT-SAX, VSM, SAX-VSM, RePair, and RRA
@@ -15,10 +15,10 @@ LinkingTo: Rcpp, RcppArmadillo
 LazyData: true
 SystemRequirements: C++11
 License: GPL-2
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 NeedsCompilation: yes
-Packaged: 2016-06-08 23:41:46 UTC; psenin
+Packaged: 2018-02-07 19:48:55 UTC; psenin
 Author: Pavel Senin [aut, cre]
 Maintainer: Pavel Senin <seninp@gmail.com>
 Repository: CRAN
-Date/Publication: 2016-06-09 05:49:06
+Date/Publication: 2018-02-07 20:05:23 UTC

@@ -1,4 +1,5 @@
 ### R package "jmotif", provides an implementation of:
+ * **[z-Normalization](https://jmotif.github.io/sax-vsm_site/morea/algorithm/znorm.html)** of time series data
  * **[PAA](https://github.com/jMotif/jmotif-R#20-piecewise-aggregate-approximation-ie-paa)**, i.e., Piecewise Aggregate Approximation
  * **[SAX](https://github.com/jMotif/jmotif-R#30-sax-transform)**, i.e., Symbolic Aggregate approXimation
  * **[HOT-SAX](https://github.com/jMotif/jmotif-R#70-hot-sax-algorithm-for-time-series-discord-discovery)**, an algorithm for the exact time series discord discovery
@@ -12,7 +13,11 @@
 [![codecov.io](http://codecov.io/github/jMotif/jmotif-R/coverage.svg?branch=master)](http://codecov.io/github/jMotif/jmotif-R?branch=master)
 [![CRAN](http://www.r-pkg.org/badges/version/jmotif)](https://cran.r-project.org/package=jmotif)
 [![License](http://img.shields.io/:license-gpl2-green.svg)](http://www.gnu.org/licenses/gpl-2.0.html)
-[![Downloads](http://cranlogs.r-pkg.org/badges/jmotif?color=brightgreen)](https://github.com/jMotif/jmotif-R)
+[![Downloads from Rstudio mirror per month](http://cranlogs.r-pkg.org/badges/jmotif?color=brightgreen)](http://www.r-pkg.org/pkg/jmotif)
+[![Downloads from Rstudio mirror](http://cranlogs.r-pkg.org/badges/grand-total/jmotif?color=brightgreen)](http://www.r-pkg.org/pkg/jmotif)
+
+#### Notes:
+In order to process sets of timeseries with uneven length, pad shorter with NA within the input data frame (list). Window-based SAX discretization procedure (sliding window left to right) will detect NA within right side of sliding window and abandon any further processing for the current time series continuing to the next.  
 
 #### References:
 

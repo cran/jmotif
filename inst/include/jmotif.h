@@ -264,6 +264,7 @@ std::vector<double> _znorm(std::vector<double> ts, double threshold);
 std::vector<double> _paa(std::vector<double> ts, int paa_num); // deprecated
 std::vector<double> _paa2(std::vector<double> ts, int paa_num);
 double _euclidean_dist(std::vector<double>* seq1, std::vector<double>* seq2);
+std::vector<double> _subseries(std::vector<double>* ts, int start, int end);
 //
 std::string _series_to_string(std::vector<double> ts, int a_size);
 bool _is_equal_mindist(std::string a, std::string b);
@@ -271,6 +272,5 @@ bool _is_equal_mindist(std::string a, std::string b);
 std::unordered_map<int, std::string> _sax_via_window(
     std::vector<double> ts, int w_size, int paa_size, int a_size,
     std::string nr_strategy, double n_threshold);
-//
 
 #endif
