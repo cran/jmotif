@@ -78,10 +78,16 @@ find_discords_hotsax <- function(ts, w_size, paa_size, a_size, n_threshold, disc
 #' Knowledge and information Systems, 3(3), 263-286. (2001)
 #' @examples
 #' x = c(-1, -2, -1, 0, 2, 1, 1, 0)
-#' plot(x, type = "l", main = "8-points time series and it PAA transform into three points")
-#' points(x,pch = 16, lwd = 5)
-#' # segments
-#' abline(v = c(1, 1+7/3, 1+7/3 * 2, 8), lty = 3, lwd = 2)
+#' x_paa3 = paa(x, 3)
+#' #
+#' plot(x, type = "l", main = c("8-points time series and its PAA transform into three points",
+#'                           "PAA shown schematically in blue"))
+#' points(x, pch = 16, lwd = 5)
+#' #
+#' paa_bounds = c(1, 1+7/3, 1+7/3*2, 8)
+#' abline(v = paa_bounds, lty = 3, lwd = 2, col = "cornflowerblue")
+#' segments(paa_bounds[1:3], x_paa3, paa_bounds[2:4], x_paa3, col = "cornflowerblue", lwd = 2)
+#' points(x = c(1, 1+7/3, 1+7/3*2) + (7/3)/2, y = x_paa3, pch = 15, lwd = 5, col = "cornflowerblue")
 paa <- function(ts, paa_num) {
     .Call('_jmotif_paa', PACKAGE = 'jmotif', ts, paa_num)
 }
@@ -122,6 +128,85 @@ str_to_repair_grammar <- function(str) {
 #'    y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
 find_discords_rra <- function(series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num) {
     .Call('_jmotif_find_discords_rra', PACKAGE = 'jmotif', series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num)
+}
+
+#' Converts a single time series into a bag of words.
+#'
+#' @param ts the timeseries.
+#' @param w_size the sliding window size.
+#' @param paa_size the PAA size.
+#' @param a_size the alphabet size.
+#' @param nr_strategy the NR strategy.
+#' @param n_threshold the normalization threshold.
+#' @useDynLib jmotif
+#' @export
+#' @references Senin Pavel and Malinchik Sergey,
+#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
+#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
+#' @references Salton, G., Wong, A., Yang., C.,
+#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+series_to_wordbag <- function(ts, w_size, paa_size, a_size, nr_strategy, n_threshold) {
+    .Call('_jmotif_series_to_wordbag', PACKAGE = 'jmotif', ts, w_size, paa_size, a_size, nr_strategy, n_threshold)
+}
+
+#' Converts a set of time-series into a single bag of words.
+#'
+#' @param data the timeseries data, row-wise.
+#' @param w_size the sliding window size.
+#' @param paa_size the PAA size.
+#' @param a_size the alphabet size.
+#' @param nr_strategy the NR strategy.
+#' @param n_threshold the normalization threshold.
+#' @useDynLib jmotif
+#' @export
+#' @references Senin Pavel and Malinchik Sergey,
+#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
+#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
+#' @references Salton, G., Wong, A., Yang., C.,
+#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+manyseries_to_wordbag <- function(data, w_size, paa_size, a_size, nr_strategy, n_threshold) {
+    .Call('_jmotif_manyseries_to_wordbag', PACKAGE = 'jmotif', data, w_size, paa_size, a_size, nr_strategy, n_threshold)
+}
+
+#' Computes a TF-IDF weight vectors for a set of word bags.
+#'
+#' @param data the list containing the input word bags.
+#' @useDynLib jmotif
+#' @export
+#' @references Senin Pavel and Malinchik Sergey,
+#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
+#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
+#' @references Salton, G., Wong, A., Yang., C.,
+#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+#' @examples
+#' bag1 = data.frame(
+#'    "words" = c("this", "is", "a", "sample"),
+#'    "counts" = c(1, 1, 2, 1),
+#'    stringsAsFactors = FALSE
+#'    )
+#' bag2 = data.frame(
+#'    "words" = c("this", "is", "another", "example"),
+#'    "counts" = c(1, 1, 2, 3),
+#'    stringsAsFactors = FALSE
+#'    )
+#' ll = list("bag1" = bag1, "bag2" = bag2)
+#' tfidf = bags_to_tfidf(ll)
+bags_to_tfidf <- function(data) {
+    .Call('_jmotif_bags_to_tfidf', PACKAGE = 'jmotif', data)
+}
+
+#' Computes the cosine distance value between a bag of words and a set of TF-IDF weight vectors.
+#'
+#' @param data the list containing a word-bag and the TF-IDF object.
+#' @useDynLib jmotif
+#' @export
+#' @references Senin Pavel and Malinchik Sergey,
+#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
+#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
+#' @references Salton, G., Wong, A., Yang., C.,
+#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+cosine_sim <- function(data) {
+    .Call('_jmotif_cosine_sim', PACKAGE = 'jmotif', data)
 }
 
 #' Translates an alphabet size into the array of corresponding SAX cut-lines built using the Normal distribution.
@@ -203,85 +288,6 @@ sax_via_window <- function(ts, w_size, paa_size, a_size, nr_strategy, n_threshol
 #' In Proc. of the 2nd Workshop on Temporal Data Mining (pp. 53-68). (2002)
 sax_by_chunking <- function(ts, paa_size, a_size, n_threshold) {
     .Call('_jmotif_sax_by_chunking', PACKAGE = 'jmotif', ts, paa_size, a_size, n_threshold)
-}
-
-#' Converts a single time series into a bag of words.
-#'
-#' @param ts the timeseries.
-#' @param w_size the sliding window size.
-#' @param paa_size the PAA size.
-#' @param a_size the alphabet size.
-#' @param nr_strategy the NR strategy.
-#' @param n_threshold the normalization threshold.
-#' @useDynLib jmotif
-#' @export
-#' @references Senin Pavel and Malinchik Sergey,
-#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
-#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
-#' @references Salton, G., Wong, A., Yang., C.,
-#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
-series_to_wordbag <- function(ts, w_size, paa_size, a_size, nr_strategy, n_threshold) {
-    .Call('_jmotif_series_to_wordbag', PACKAGE = 'jmotif', ts, w_size, paa_size, a_size, nr_strategy, n_threshold)
-}
-
-#' Converts a set of time-series into a single bag of words.
-#'
-#' @param data the timeseries data, row-wise.
-#' @param w_size the sliding window size.
-#' @param paa_size the PAA size.
-#' @param a_size the alphabet size.
-#' @param nr_strategy the NR strategy.
-#' @param n_threshold the normalization threshold.
-#' @useDynLib jmotif
-#' @export
-#' @references Senin Pavel and Malinchik Sergey,
-#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
-#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
-#' @references Salton, G., Wong, A., Yang., C.,
-#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
-manyseries_to_wordbag <- function(data, w_size, paa_size, a_size, nr_strategy, n_threshold) {
-    .Call('_jmotif_manyseries_to_wordbag', PACKAGE = 'jmotif', data, w_size, paa_size, a_size, nr_strategy, n_threshold)
-}
-
-#' Computes a TF-IDF weight vectors for a set of word bags.
-#'
-#' @param data the list containing the input word bags.
-#' @useDynLib jmotif
-#' @export
-#' @references Senin Pavel and Malinchik Sergey,
-#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
-#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
-#' @references Salton, G., Wong, A., Yang., C.,
-#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
-#' @examples
-#' bag1 = data.frame(
-#'    "words" = c("this", "is", "a", "sample"),
-#'    "counts" = c(1, 1, 2, 1),
-#'    stringsAsFactors = FALSE
-#'    )
-#' bag2 = data.frame(
-#'    "words" = c("this", "is", "another", "example"),
-#'    "counts" = c(1, 1, 2, 3),
-#'    stringsAsFactors = FALSE
-#'    )
-#' ll = list("bag1" = bag1, "bag2" = bag2)
-#' tfidf = bags_to_tfidf(ll)
-bags_to_tfidf <- function(data) {
-    .Call('_jmotif_bags_to_tfidf', PACKAGE = 'jmotif', data)
-}
-
-#' Computes the cosine distance value between a bag of words and a set of TF-IDF weight vectors.
-#'
-#' @param data the list containing a word-bag and the TF-IDF object.
-#' @useDynLib jmotif
-#' @export
-#' @references Senin Pavel and Malinchik Sergey,
-#' SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.
-#' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
-#' @references Salton, G., Wong, A., Yang., C.,
-#' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
-cosine_sim <- function(data) {
-    .Call('_jmotif_cosine_sim', PACKAGE = 'jmotif', data)
 }
 
 #' Get the ASCII letter by an index.

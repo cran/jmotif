@@ -88,7 +88,7 @@ bool is_equal_mindist(CharacterVector a, CharacterVector b) {
   return true;
 }
 
-bool _is_equal_mindist(std::string a, std::string b) {
+/* bool _is_equal_mindist(std::string a, std::string b) {
   if(a.length() != b.length()){
     return false;
   }else{
@@ -99,11 +99,11 @@ bool _is_equal_mindist(std::string a, std::string b) {
     }
   }
   return true;
-}
+}*/
 
 int _count_spaces(std::string *s) {
   int count = 0;
-  for (int i = 0; i < s->size(); i++)
+  for (unsigned i = 0; i < s->size(); i++)
     if (s->at(i) == ' ') count++;
     return count;
 }
