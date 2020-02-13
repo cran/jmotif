@@ -1,9 +1,9 @@
-21a6070716f9eb73a8667634b6dc493a *DESCRIPTION
+26e116555942af6e4f504fea202c4442 *DESCRIPTION
 af64f991b7a3b78d512a2decbd0c8989 *NAMESPACE
 6c3ad822caa93ba0d74ade8c22330eb4 *R/RcppExports.R
 1f60f351e0bf2e402b925a207e3381ca *R/data.R
 96002958f1948e50116b4c98732f38f7 *R/jmotif.R
-a1734a5fcdbf17bd1b05d608af8a89a4 *README.md
+8c12cc0a13400db0fbf1c19d2992853f *README.md
 714b1d64c952cdb1210cd79d691acbf7 *data/CBF.rda
 9936142964feafe334c5af15e629aa38 *data/ECG0606.rda
 84691bf5838fd68e99e9d5bbf255758a *data/Gun_Point.rda
@@ -55,10 +55,10 @@ f75b39da82c61ca1e16e02d0ec518f9a *src/repair_symbol_record.cpp
 db2a8a4178c90532c7cfe129c4de073d *src/rra.cpp
 baca95c858f5be0a4a8ec08147d6116e *src/sax-vsm.cpp
 0f9f68031d0b4d8a20704b47d27fff9e *src/sax.cpp
-3d30e5c16f53a70fdf5898c0702345b0 *src/string.cpp
+7b92c1c7c22afabb1a6b61a306df57c7 *src/string.cpp
 5d74c34084b9f8177826cc94d6281172 *src/utils.cpp
 4c6b878d64d4504ab8e31e03f7a6d312 *src/visit_registry.cpp
-e9ab188937acd2faeeda5c65efa69e4c *src/znorm.cpp
+28055db7da6d3372791c3ddf7463b51f *src/znorm.cpp
 a7d8b6e1a0dee181de63cb189cbc8e93 *tests/log.out
 05962bd8241898a280bcd5514ed2fc72 *tests/testthat.R
 bef6093296b597b328e136d4eb65725f *tests/testthat/test_PAA.R
