@@ -1,10 +1,13 @@
 #ifndef JMOTIF_h
 #define JMOTIF_h
 //
-#include <RcppArmadillo.h>
-using namespace Rcpp ;
+//#include <RcppArmadillo.h>
+#include <vector>
+#include <random>
+#include <Rcpp.h>
+using namespace Rcpp;
 // Enable C++11 via this plugin (Rcpp 0.10.3 or later)
-// [[Rcpp::plugins("cpp11")]]
+// [[Rcpp::plugins("cpp14")]]
 
 //
 // Define the letters array
@@ -15,7 +18,7 @@ const char LETTERS[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', '
 //
 // SAX stack
 //
-NumericVector znorm(NumericVector ts, double threshold);
+// NumericVector znorm(NumericVector ts, double threshold);
 //
 NumericVector paa(NumericVector ts, int paa_num);
 //
@@ -71,12 +74,14 @@ Rcpp::DataFrame cosine_sim(Rcpp::List data);
 struct discord_record {
   int index;
   double nn_distance;
+  int dist_calls;
 };
 //
 class VisitRegistry {
 public:
   int size;
-  bool* registry;
+  std::vector<bool> registry;
+  std::vector<int> indexes;
   int unvisited_count;
   VisitRegistry( int capacity );
   int getNextUnvisited();
@@ -260,7 +265,7 @@ int armaRand();
 std::vector<double> _alphabet_to_cuts(int a_size);
 int _count_spaces(std::string *s);
 double _mean(std::vector<double> *ts, int *start, int *end);
-std::vector<double> _znorm(std::vector<double> ts, double threshold);
+std::vector<double> _znorm(const std::vector<double>& ts, double threshold);
 std::vector<double> _paa(std::vector<double> ts, int paa_num); // deprecated
 std::vector<double> _paa2(std::vector<double> ts, int paa_num);
 double _euclidean_dist(std::vector<double>* seq1, std::vector<double>* seq2);
