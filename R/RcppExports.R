@@ -6,6 +6,11 @@
 #' @param ts the input timeseries.
 #' @param w_size the sliding window size.
 #' @param discords_num the number of discords to report.
+#' @param n_threshold the z-normalization threshold.
+#' @param seed the random seed for the candidate visit order; a negative value
+#' (the default) leaves it non-reproducible, a non-negative value makes the
+#' search trajectory (and its distance-call count) reproducible. The reported
+#' discords are identical either way.
 #' @useDynLib jmotif
 #' @export
 #' @references Keogh, E., Lin, J., Fu, A.,
@@ -16,8 +21,8 @@
 #' plot(ecg0606[1:600], type = "l", col = "cornflowerblue", main = "ECG 0606")
 #' lines(x=c(discords[1,2]:(discords[1,2]+100)),
 #'    y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
-find_discords_brute_force <- function(ts, w_size, discords_num) {
-    .Call('_jmotif_find_discords_brute_force', PACKAGE = 'jmotif', ts, w_size, discords_num)
+find_discords_brute_force <- function(ts, w_size, discords_num, n_threshold = 0.01, seed = -1L) {
+    .Call('_jmotif_find_discords_brute_force', PACKAGE = 'jmotif', ts, w_size, discords_num, n_threshold, seed)
 }
 
 #' Finds the Euclidean distance between points.
@@ -53,6 +58,10 @@ early_abandoned_dist <- function(seq1, seq2, upper_limit) {
 #' @param a_size the alphabet size.
 #' @param n_threshold the normalization threshold.
 #' @param discords_num the number of discords to report.
+#' @param seed the random seed for the random-search visit order; a negative
+#' value (the default) leaves it non-reproducible, a non-negative value makes
+#' the search trajectory (and its distance-call count) reproducible. The
+#' reported discords are identical either way.
 #' @useDynLib jmotif
 #' @export
 #' @references Keogh, E., Lin, J., Fu, A.,
@@ -63,8 +72,8 @@ early_abandoned_dist <- function(seq1, seq2, upper_limit) {
 #' plot(ecg0606, type = "l", col = "cornflowerblue", main = "ECG 0606")
 #' lines(x=c(discords[1,2]:(discords[1,2]+100)),
 #'    y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
-find_discords_hotsax <- function(ts, w_size, paa_size, a_size, n_threshold, discords_num) {
-    .Call('_jmotif_find_discords_hotsax', PACKAGE = 'jmotif', ts, w_size, paa_size, a_size, n_threshold, discords_num)
+find_discords_hotsax <- function(ts, w_size, paa_size, a_size, n_threshold, discords_num, seed = -1L) {
+    .Call('_jmotif_find_discords_hotsax', PACKAGE = 'jmotif', ts, w_size, paa_size, a_size, n_threshold, discords_num, seed)
 }
 
 #' Computes a Piecewise Aggregate Approximation (PAA) for a time series.
@@ -116,6 +125,12 @@ str_to_repair_grammar <- function(str) {
 #' @param nr_strategy the numerosity reduction strategy ("none", "exact", "mindist").
 #' @param n_threshold the normalization threshold.
 #' @param discords_num the number of discords to report.
+#' @param seed the random seed for the phase-2 search-order shuffle. The default
+#' (a negative value) keeps the historical fixed-default engine, which is itself
+#' deterministic but not caller-controllable; a non-negative value lets the
+#' caller choose the shuffle, so a different reproducible search trajectory (and
+#' distance-call count) can be obtained. The reported discords are identical
+#' either way -- only the search trajectory depends on it.
 #' @useDynLib jmotif
 #' @export
 #' @references Senin Pavel and Malinchik Sergey,
@@ -126,8 +141,8 @@ str_to_repair_grammar <- function(str) {
 #' plot(ecg0606, type = "l", col = "cornflowerblue", main = "ECG 0606")
 #' lines(x=c(discords[1,2]:(discords[1,2]+100)),
 #'    y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
-find_discords_rra <- function(series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num) {
-    .Call('_jmotif_find_discords_rra', PACKAGE = 'jmotif', series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num)
+find_discords_rra <- function(series, w_size, paa_size, a_size, nr_strategy, n_threshold = 0.01, discords_num = 3L, seed = -1L) {
+    .Call('_jmotif_find_discords_rra', PACKAGE = 'jmotif', series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num, seed)
 }
 
 #' Converts a single time series into a bag of words.

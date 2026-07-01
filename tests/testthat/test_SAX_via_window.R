@@ -17,8 +17,9 @@ test_that("SAX test #1", {
 
   expect_equal(length(sax1), length(t(dat)) - 6 + 1)
 
-  expect_equal(sax1$'0', "bba")
-  expect_equal(sax1[[0 + 1]], "bba")
+  # 'cca' under the 1.3.0 population-std znorm (was 'bba' with sample std).
+  expect_equal(sax1$'0', "cca")
+  expect_equal(sax1[[0 + 1]], "cca")
 
   expect_equal(sax1$'53', "acc")
   expect_equal(sax1[[53 + 1]], "acc")

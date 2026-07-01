@@ -20,6 +20,13 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
   // std::clock_t c_start0 = std::clock();
   // Rcout << "input string of " << str_length << " tokens \n";
 
+  // Arena owning every working object (symbols/records/guards/rules/digrams/pq-nodes).
+  // Declared FIRST so it is destroyed LAST -- after `res` is built -- freeing the lot on
+  // every exit path. Replaces the previous never-freed `new` allocations. The returned
+  // rule_record objects are NOT pooled (the caller owns them); they deep-copy the strings
+  // and vectors they need out of pooled objects before this function returns.
+  repair_pool pool;
+
   // the grammar keeper
   std::map<int, repair_rule*> grammar;
 
@@ -41,9 +48,9 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
     // Rcout << "current token: " << token << std::endl;
 
     // create the symbol
-    repair_symbol* rs = new repair_symbol( token, token_counter );
+    repair_symbol* rs = pool.new_symbol( token, token_counter );
     // wrap the symbol into the record
-    repair_symbol_record* rec = new repair_symbol_record( rs );
+    repair_symbol_record* rec = pool.new_record( rs );
     r0.emplace_back( rec ); // and place into the work string
 
     if(token_counter > 0){ // if symbol has been already added, work out digrams
@@ -90,10 +97,11 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
 
   // populate the priority queue and the index -> digram record map
   repair_priority_queue digram_queue;
+  digram_queue.pool = &pool; // arena-allocate the queue's nodes too
   for(std::unordered_map<std::string, std::vector<int>>::iterator it = digram_table.begin();
       it != digram_table.end(); ++it) {
     if(it->second.size() > 1) {
-      repair_digram* digram = new repair_digram( it->first, it->second.size() );
+      repair_digram* digram = pool.new_digram( it->first, it->second.size() );
       digram_queue.enqueue(digram);
     }
   }
@@ -136,7 +144,7 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
     // Rcout << "   * " << second_symbol->payload->payload << " @" << second_symbol->payload->str_index <<
     // std::endl;
 
-    repair_rule* r = new repair_rule();
+    repair_rule* r = pool.new_rule();
     r->id = grammar.size() + 1;
     r->first = first_symbol->payload; // first string
     r->second = second_symbol->payload; // second string
@@ -194,7 +202,7 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
       //       << std::endl;
 
       // make up a guard for the rule
-      repair_guard* guard = new repair_guard(r, occ);
+      repair_guard* guard = pool.new_guard(r, occ);
       r->occurrences.push_back(occ);
 
       // alter the R0 by placing the guard...
@@ -405,7 +413,7 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
           digram_queue.update_digram_frequency(&st, digram_table[st].size());
         } else {
           // Rcout << "      enqueueing a digram ... " << st << ":" << digram_table[st].size() << std::endl;
-          repair_digram* digram = new repair_digram( st, digram_table[st].size() );
+          repair_digram* digram = pool.new_digram( st, digram_table[st].size() );
           digram_queue.enqueue(digram);
         }
       }

@@ -1,5 +1,5 @@
 ### R package "jmotif", provides an implementation of:
- * **[z-Normalization](https://jmotif.github.io/sax-vsm_site/morea/algorithm/znorm.html)** of time series data
+ * **[z-Normalization](https://jmotif.github.io/sax-vsm_site/algorithm/znorm/)** of time series data
  * **[PAA](https://github.com/jMotif/jmotif-R#20-piecewise-aggregate-approximation-ie-paa)**, i.e., Piecewise Aggregate Approximation
  * **[SAX](https://github.com/jMotif/jmotif-R#30-sax-transform)**, i.e., Symbolic Aggregate approXimation
  * **[HOT-SAX](https://github.com/jMotif/jmotif-R#70-hot-sax-algorithm-for-time-series-discord-discovery)**, an algorithm for the exact time series discord discovery
@@ -19,8 +19,50 @@
 
 #### Most of this functionality is also implemented in [Java](https://github.com/jMotif/SAX) and some in [Python](https://github.com/seninp/saxpy) as well...
 
+#### Cross-implementation alignment
+
+As of 1.3.0 the R/C++, Python ([saxpy](https://github.com/seninp/saxpy)), and
+Java implementations are kept aligned: the SAX stack (z-normalization, PAA,
+Gaussian breakpoints, symbol assignment) and the HOT-SAX / brute-force discord
+search produce the same results across all three to floating-point precision.
+The shared conventions are:
+
+  * z-normalization uses the **population** standard deviation (divide by `n`),
+    matching the Matrix Profile / MASS convention, so each window has empirical
+    variance exactly 1 (the assumption behind SAX's equiprobable breakpoints);
+  * PAA uses fractional segment boundaries;
+  * a value exactly on a breakpoint maps to the symbol **above** the cut;
+  * all distance-based discord search compares **z-normalized** subsequences —
+    HOT-SAX, brute-force, *and* RRA key on shape, not amplitude; HOT-SAX and
+    brute-force additionally break distance ties by the lowest index, so their
+    results are reproducible regardless of search order.
+
+RRA agrees with the other implementations on the discord *region* (e.g. the
+ecg0606 anomaly at position 430), but its reported nearest-neighbour distance is
+a search-order-dependent *approximation*: RRA's rarest-first search
+early-abandons as soon as a close-enough neighbour is found, so the exact
+distance value (not the position) can differ by a few percent between
+implementations whose random visit orders differ. This is inherent to the
+heuristic, not a convention gap.
+
+**SAX-VSM** is aligned too. The TF\*IDF weight uses **log1p term frequency,
+`log(1 + tf)`, and a natural-log IDF, `log(N / df)`**, in R, saxpy and the Java
+`sax-vsm_classic` (which previously used the SMART `1 + log(tf)` / `log10`
+scheme). A cross-implementation accuracy study (CBF, Gun_Point, Coffee, Beef,
+OSULeaf, Adiac) found `log1p` ties or beats SMART at the tuned operating point on
+every dataset, so `log1p` is canonical; R already used it, so no R output
+changed. The IDF base (`log` vs `log10`) cancels in the cosine similarity and
+never affects classification. All three score identically on Cylinder-Bell-Funnel
+(900/900 at w=60, p=8, a=6, EXACT).
+
+In 1.3.0 this changed several R outputs versus 1.2.x (z-normalization moved from
+the sample to the population standard deviation, HOT-SAX now z-normalizes its
+distances, RRA was switched to z-normalized distances too, and a PAA boundary
+bug was fixed), so SAX words and discord positions near a breakpoint may differ
+from earlier releases. See the version notes at the bottom.
+
 #### Citing this work:
-While RRA was proposed in [8], the code was ported in R to assist for our newer development in SAX parameters optimization: [Grammarviz 3.0](https://dl.acm.org/citation.cfm?id=3051126), please cite it: Senin, P., Lin, J., Wang, X., Oates, T., Gandhi, S., Boedihardjo, A.P., Chen, C., Frankenstein, S.,  [*GrammarViz 3.0: Interactive Discovery of Variable-Length Time Series Patterns*](https://github.com/csdl/techreports/blob/master/techreports/2017/17-04/17-04.pdf), ACM Trans. Knowl. Discov. Data, February 2018. [[Click here for Citation BibTeX]](https://raw.githubusercontent.com/jMotif/SAX/master/citation.bib)
+While RRA was proposed in [8], the code was ported in R to assist for our newer development in SAX parameters optimization: [Grammarviz 3.0](https://dl.acm.org/doi/10.1145/3051126), please cite it: Senin, P., Lin, J., Wang, X., Oates, T., Gandhi, S., Boedihardjo, A.P., Chen, C., Frankenstein, S.,  [*GrammarViz 3.0: Interactive Discovery of Variable-Length Time Series Patterns*](https://github.com/csdl/techreports/blob/master/techreports/2017/17-04/17-04.pdf), ACM Trans. Knowl. Discov. Data, February 2018. [[Click here for Citation BibTeX]](https://raw.githubusercontent.com/jMotif/SAX/master/citation.bib)
 
 #### Notes:
 In order to process sets of timeseries with uneven length, pad shorter with NA within the input data frame (list). Window-based SAX discretization procedure (sliding window left to right) will detect NA within right side of sliding window and abandon any further processing for the current time series continuing to the next.  
@@ -28,7 +70,7 @@ In order to process sets of timeseries with uneven length, pad shorter with NA w
 #### References:
 
 [1] Dina Goldin and Paris Kanellakis,
-[*On similarity queries for time-series data: Constraint specification and implementation*](https://dl.acm.org/citation.cfm?id=726176),
+[*On similarity queries for time-series data: Constraint specification and implementation*](https://dl.acm.org/doi/10.1145/726176),
 In Principles and Practice of Constraint Programming – CP ’95, pages 137–153. (1995)
 
 [2] Keogh, E., Chakrabarti, K., Pazzani, M., & Mehrotra, S., 
@@ -38,7 +80,7 @@ Knowledge and information Systems, 3(3), 263-286. (2001)
 [3] Lonardi, S., Lin, J., Keogh, E., & Patel, P., 
 [*Finding motifs in time series*](https://scholar.google.com/scholar?cluster=9053042128452360340&hl=en&as_sdt=0,5), In Proc. of the 2nd Workshop on Temporal Data Mining (pp. 53-68). (2002)
 
-[4] Salton, G., Wong, A., Yang., C., [*A vector space model for automatic indexing*](https://dl.acm.org/citation.cfm?id=361220), Commun. ACM 18, 11, 613–620, 1975.
+[4] Salton, G., Wong, A., Yang., C., [*A vector space model for automatic indexing*](https://dl.acm.org/doi/10.1145/361219.361220), Commun. ACM 18, 11, 613–620, 1975.
 
 [5] Senin Pavel and Malinchik Sergey, 
 [*SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.*](https://scholar.google.fr/citations?view_op=view_citation&citation_for_view=pVTcEd8AAAAJ:5nxA0vEk-isC),
@@ -116,10 +158,10 @@ The figure below illustrates the PAA+SAX procedure: 8 points time series is conv
     text(0.7, 1,"c",cex=2,col="magenta")
 
     > series_to_string(y_paa3, 3)
-    [1] "acc"
+    [1] "abc"
     
     > series_to_chars(y_paa3, 3)
-    [1] "a" "c" "c"
+    [1] "a" "b" "c"
       
 ![an application of SAX transform (3 letters word size and 3 letters alphabet size) to an 8 points time series ](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/site/fig_sax83.png)
 
@@ -160,12 +202,12 @@ each of these bags is a two-columns data frame:
 
     > head(cylinder)
        words counts
-    1 aabeee      2
+    1 aabeee      1
     2 aabeef      1
-    3 aaceee      7
-    4 aacfee      1
-    5 aadeee      7
-    6 aaedde      1
+    3 aabfee      1
+    4 aaceee      6
+    5 aaceef      1
+    6 aacfee      1
 
 ##### 5.2 `TF*IDF` weighting
 `TF*IDF` weights are computed at the second step with `bags_to_tfidf` function which accepts a single argument -- a list of _named_ (by class label) word bags:
@@ -177,13 +219,13 @@ each of these bags is a two-columns data frame:
 this yields a data frame of four variables: the words which are "important" in `TF*IDF` terms (i.e. not presented at least in one of the bags) and their class-corresponding weights:
 
     > tail(tfidf)
-         words  cylinder     bell funnel
-    640 ffcbbb 0.6525709 0.445449 0.0000
-    641 ffdbab 0.0000000 0.000000 0.7615
-    642 ffdbbb 1.7681483 0.000000 0.0000
-    643 ffdcaa 0.0000000 0.000000 0.7615
-    644 ffdcba 0.0000000 0.000000 0.7615
-    645 ffebbb 1.5230000 0.000000 0.0000
+         words cylinder bell funnel
+    658 ffdbab 0.000000    0 0.7615
+    659 ffdbbb 1.968449    0 0.0000
+    660 ffdcaa 0.000000    0 0.7615
+    661 ffdcba 0.000000    0 0.7615
+    662 ffeabb 0.761500    0 0.0000
+    663 ffebbb 1.523000    0 0.0000
 
 which makes it easy to find which exact pattern contributes the most to the class:
 
@@ -191,14 +233,20 @@ which makes it easy to find which exact pattern contributes the most to the clas
     > head(arrange(tfidf, desc(cylinder)))
        words cylinder bell funnel
     1 aaeeee 2.413898    0      0
-    2 aaceee 2.284500    0      0
-    3 aadeee 2.284500    0      0
+    2 aadeee 2.284500    0      0
+    3 abeeee 2.284500    0      0
+    4 addddd 2.284500    0      0
+    5 cccddd 2.284500    0      0
+    6 eeeeaa 2.284500    0      0
 
     > head(arrange(tfidf, desc(funnel)))
        words cylinder bell   funnel
-    1 fedcba        0    0 2.975097
+    1 fedcba        0    0 2.817885
     2 fedbba        0    0 2.284500
     3 adfecb        0    0 1.968449
+    4 afedcb        0    0 1.968449
+    5 fdcbcc        0    0 1.968449
+    6 abfedc        0    0 1.768148
     
 and to visualize those on data:
 
@@ -458,37 +506,40 @@ whereas HOT-SAX finishes in fraction of a second:
        time alloc release dups     ref   src
     1 0.191 0.245       0   56 ".Call" .Call
 
-The discords returned as a data frame sorted by the position:
+The discords are returned as a data frame sorted by the nearest neighbor distance (the `distance_calls` column reports how many distance computations each discord required):
 
     > discords = find_discords_hotsax(ecg0606, 100, 4, 4, 0.01, 5)
     > discords
-      nn_distance position
-    1   0.4787745       37
-    2   0.4177020      188
-    3   1.5045847      411
-    4   0.4437060      539
-    5   0.4437060     1566
-    
-The best discord is the third one at 411:
+      nn_distance position distance_calls
+    1    5.279080      430          20692
+    2    4.175756      318          36382
+    3    2.392998     2080          40735
+    4    2.375541       25          37458
+    5    2.064930     1198          51536
+
+(The `nn_distance` and `position` values are deterministic; the `distance_calls`
+counts depend on the randomized HOT-SAX search order and vary from run to run.)
+
+The discords are returned sorted by the nearest neighbor distance, so the best discord is the first one at 430:
 
     discords = find_discords_hotsax(ecg0606, 100, 4, 4, 0.01, 5)
     plot(ecg0606, type = "l", col = "cornflowerblue", main = "ECG 0606")
-    lines(x=c(discords[3,2]:(discords[3,2]+100)),
-        y=ecg0606[discords[3,2]:(discords[3,2]+100)], col="red")
+    lines(x=c(discords[1,2]:(discords[1,2]+100)),
+        y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
 
 ![ECG0606 clusters](https://raw.githubusercontent.com/jMotif/jmotif-R/master/inst/site/ecg0606_discord.png)
 
 
-It is easy to sort discord by the nearest neighbor distance:
+The output is already ordered by the nearest neighbor distance; `dplyr` can be used to re-sort it explicitly:
 
     > library(dplyr)
     > arrange(discords,desc(nn_distance))
-      nn_distance position
-    1   1.5045847      411
-    2   0.4787745       37
-    3   0.4437060      539
-    4   0.4437060     1566
-    5   0.4177020      188
+      nn_distance position distance_calls
+    1    5.279080      430          20692
+    2    4.175756      318          36382
+    3    2.392998     2080          40735
+    4    2.375541       25          37458
+    5    2.064930     1198          51536
 
 #### 7.0 Grammatical inference with RePair
 RePair is a dictionary-based compression method proposed in 1999 by Larsson and Moffat. In contrast with Sequitur, Repair is an *off-line algorithm* that requires the whole input sequence to be accessible before building a grammar. Similar to Sequitur, RePair also can be utilized as a grammar-based compressor able to discover a compact grammar that generates the text. It is a remarkably simple algorithm which is known for its very fast decompression. 
@@ -501,9 +552,9 @@ Here is an example of RePair grammar for the input string containing an anomaly 
 
     Grammar rule        Expanded grammar rule                        Occurrence in R0
     R0 -> R4 xxx R4     abc abc cba cba bac xxx abc abc cba cba bac  
-    R1 -> abc abc       abc abc                                      2-3, 8-9
-    R2 -> cba cba       cba cba                                      0-1, 6-7
-    R3 -> R1 R2         abc abc cba cba                              0-3, 6-9
+    R1 -> abc abc       abc abc                                      0-1, 6-7
+    R2 -> R1 cba        abc abc cba                                  0-2, 6-8
+    R3 -> R2 cba        abc abc cba cba                              0-3, 6-9
     R4 -> R3 bac        abc abc cba cba bac                          0-4, 6-10
 
 Calling RePair implementation in jmotif-R 
@@ -515,10 +566,22 @@ produces a list of data frames, each of which contains the RePair grammar rule i
     > str(grammar[[2]])
     List of 5
      $ rule_name           : chr "R1"
-     $ rule_string         : chr "cba cba"
-     $ expanded_rule_string: chr "cba cba"
-     $ rule_interval_starts: num [1:2] 2 8
-     $ rule_interval_ends  : num [1:2] 3 9
+     $ rule_string         : chr "R1"
+     $ expanded_rule_string: chr "abc abc"
+     $ rule_interval_starts: num [1:2] 6 0
+     $ rule_interval_ends  : num [1:2] 7 1
+
+RePair is **lossless** and the inferred grammar is structurally equivalent across
+the R, Python, and Java implementations: decompressing R0 always reproduces the
+input, and R0 ends up with no repeated digram. RePair repeatedly replaces the
+*most frequent* digram with a new rule; when several digrams share the maximal
+frequency, *which one is replaced first* is an implementation detail (the C++/R
+port follows `unordered_map` iteration order, saxpy follows Python dict insertion
+order, Java uses its priority queue). On tie-heavy inputs this can change the
+**rule numbering** and which equal-frequency pair is factored -- so rule ids and
+even the rule count may differ slightly between implementations -- but the
+compression is correct in all of them and the set of rules is determined by the
+input. Treat `rule_name` as implementation-local, not a cross-language identifier.
 
 #### 8.0 Rule density curve
 As we have discussed in our work, SAX opens door for many high-level string algorithms application to the problem of patterns mining in time series. Specifically in [[8](https://csdl.ics.hawaii.edu/techreports/2014/14-05/14-05.pdf)], we have shown useful properties of grammatical compression (i.e., algorithmic complexity) when applied to the problem of recurrent and anomalous pattern discovery.
@@ -569,10 +632,9 @@ and use RePair implementation to build the grammar curve:
     
     # see global minimas
     which(density_curve==min(density_curve))
-    # [1]   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24
-    # [25]  25  26  27  28  29  30 444 445 446 447 448 449 450 451 452 453 454 455 456 457 458 459 460 461
-    # [49] 462 463 464 465 466 467 468 469 470 471 472 473 474 475 476
-    min_values = data.frame(x=c(444:476),y=rep(0,(476-443)))
+    # [1]  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+    # [26] 26 27 28 29 30
+    min_values = data.frame(x=c(1:30),y=rep(0,30))
     
     # plot the curve
     density_df=data.frame(time=c(1:length(density_curve)),value=density_curve)
@@ -597,6 +659,18 @@ RRA (i.e., Rare Rule Anomaly) algorithm extends the HOT-SAX algorithm leveraging
 
 Since each of the grammar rules consists of terminal and non-terminal tokens, the subsequences corresponding to rules naturally vary in length. Moreover, due to the compression properties of the utilized grammatical inference algorithm, which operates on digrams (i.e. pairs of subsequences extracted via sliding window), the amount of input subsequences for RAA is usually significantly lower than those extracted via sliding window for HOT-SAX, which improves the efficiency of HOT-SAX inner and outer loops by reducing the number of calls to the distance function. 
 
-In addition to the above, RRA uses a different heuristics for the ordering in the HOT-SAX outer loop: instead of ordering subsequences by their occurrence frequency, the rule-corresponding subsequences are ordered according to the "rule coverage" values discussed above -- a value which reflects the compressibility of the subsequence. Naturally, we expect that incompressible subsequences correspond to potential anomalies.    
+In addition to the above, RRA uses a different heuristics for the ordering in the HOT-SAX outer loop: instead of ordering subsequences by their occurrence frequency, the rule-corresponding subsequences are ordered according to the "rule coverage" values discussed above -- a value which reflects the compressibility of the subsequence. Naturally, we expect that incompressible subsequences correspond to potential anomalies.
+
+    discords <- find_discords_rra(ecg0606, 100, 4, 4, "none", 0.01, 4)
+
+As of 1.3.0 RRA computes its distances between **z-normalized** subsequences
+(keying on shape, like HOT-SAX and the canonical jMotif GrammarViz RRA), so on
+ecg0606 it reports the same primary anomaly region (~position 430) as HOT-SAX
+and the saxpy/Java implementations. The reported nearest-neighbour distance is,
+however, a search-order-dependent *approximation*: RRA's rule-coverage-ordered
+search early-abandons as soon as a close-enough neighbour is found, so the exact
+distance value (not the discord position) can differ by a few percent between
+implementations whose visit orders differ. This is inherent to the heuristic --
+exactness of the distance is not guaranteed -- not a cross-implementation defect.
 
 

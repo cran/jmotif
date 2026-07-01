@@ -13,7 +13,8 @@ find_discords_rra(
   a_size,
   nr_strategy,
   n_threshold,
-  discords_num
+  discords_num,
+  seed = -1L
 )
 }
 \arguments{
@@ -30,6 +31,13 @@ find_discords_rra(
 \item{n_threshold}{the normalization threshold.}
 
 \item{discords_num}{the number of discords to report.}
+
+\item{seed}{the random seed for the phase-2 search-order shuffle. The default
+(a negative value) keeps the historical fixed-default engine, which is itself
+deterministic but not caller-controllable; a non-negative value lets the caller
+choose the shuffle, so a different reproducible search trajectory (and
+distance-call count) can be obtained. The reported discords are identical either
+way -- only the search trajectory depends on it.}
 }
 \description{
 Finds a discord with RRA (Rare Rule Anomaly) algorithm.

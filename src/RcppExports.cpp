@@ -12,15 +12,17 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // find_discords_brute_force
-Rcpp::DataFrame find_discords_brute_force(NumericVector ts, int w_size, int discords_num);
-RcppExport SEXP _jmotif_find_discords_brute_force(SEXP tsSEXP, SEXP w_sizeSEXP, SEXP discords_numSEXP) {
+Rcpp::DataFrame find_discords_brute_force(NumericVector ts, int w_size, int discords_num, double n_threshold, int seed);
+RcppExport SEXP _jmotif_find_discords_brute_force(SEXP tsSEXP, SEXP w_sizeSEXP, SEXP discords_numSEXP, SEXP n_thresholdSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type ts(tsSEXP);
     Rcpp::traits::input_parameter< int >::type w_size(w_sizeSEXP);
     Rcpp::traits::input_parameter< int >::type discords_num(discords_numSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_discords_brute_force(ts, w_size, discords_num));
+    Rcpp::traits::input_parameter< double >::type n_threshold(n_thresholdSEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_discords_brute_force(ts, w_size, discords_num, n_threshold, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -50,8 +52,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // find_discords_hotsax
-Rcpp::DataFrame find_discords_hotsax(NumericVector ts, int w_size, int paa_size, int a_size, double n_threshold, int discords_num);
-RcppExport SEXP _jmotif_find_discords_hotsax(SEXP tsSEXP, SEXP w_sizeSEXP, SEXP paa_sizeSEXP, SEXP a_sizeSEXP, SEXP n_thresholdSEXP, SEXP discords_numSEXP) {
+Rcpp::DataFrame find_discords_hotsax(NumericVector ts, int w_size, int paa_size, int a_size, double n_threshold, int discords_num, int seed);
+RcppExport SEXP _jmotif_find_discords_hotsax(SEXP tsSEXP, SEXP w_sizeSEXP, SEXP paa_sizeSEXP, SEXP a_sizeSEXP, SEXP n_thresholdSEXP, SEXP discords_numSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -61,7 +63,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type a_size(a_sizeSEXP);
     Rcpp::traits::input_parameter< double >::type n_threshold(n_thresholdSEXP);
     Rcpp::traits::input_parameter< int >::type discords_num(discords_numSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_discords_hotsax(ts, w_size, paa_size, a_size, n_threshold, discords_num));
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_discords_hotsax(ts, w_size, paa_size, a_size, n_threshold, discords_num, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -89,8 +92,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // find_discords_rra
-Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size, int a_size, CharacterVector nr_strategy, double n_threshold, int discords_num);
-RcppExport SEXP _jmotif_find_discords_rra(SEXP seriesSEXP, SEXP w_sizeSEXP, SEXP paa_sizeSEXP, SEXP a_sizeSEXP, SEXP nr_strategySEXP, SEXP n_thresholdSEXP, SEXP discords_numSEXP) {
+Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size, int a_size, CharacterVector nr_strategy, double n_threshold, int discords_num, int seed);
+RcppExport SEXP _jmotif_find_discords_rra(SEXP seriesSEXP, SEXP w_sizeSEXP, SEXP paa_sizeSEXP, SEXP a_sizeSEXP, SEXP nr_strategySEXP, SEXP n_thresholdSEXP, SEXP discords_numSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -101,7 +104,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< CharacterVector >::type nr_strategy(nr_strategySEXP);
     Rcpp::traits::input_parameter< double >::type n_threshold(n_thresholdSEXP);
     Rcpp::traits::input_parameter< int >::type discords_num(discords_numSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_discords_rra(series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num));
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_discords_rra(series, w_size, paa_size, a_size, nr_strategy, n_threshold, discords_num, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -308,13 +312,13 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_jmotif_find_discords_brute_force", (DL_FUNC) &_jmotif_find_discords_brute_force, 3},
+    {"_jmotif_find_discords_brute_force", (DL_FUNC) &_jmotif_find_discords_brute_force, 5},
     {"_jmotif_euclidean_dist", (DL_FUNC) &_jmotif_euclidean_dist, 2},
     {"_jmotif_early_abandoned_dist", (DL_FUNC) &_jmotif_early_abandoned_dist, 3},
-    {"_jmotif_find_discords_hotsax", (DL_FUNC) &_jmotif_find_discords_hotsax, 6},
+    {"_jmotif_find_discords_hotsax", (DL_FUNC) &_jmotif_find_discords_hotsax, 7},
     {"_jmotif_paa", (DL_FUNC) &_jmotif_paa, 2},
     {"_jmotif_str_to_repair_grammar", (DL_FUNC) &_jmotif_str_to_repair_grammar, 1},
-    {"_jmotif_find_discords_rra", (DL_FUNC) &_jmotif_find_discords_rra, 7},
+    {"_jmotif_find_discords_rra", (DL_FUNC) &_jmotif_find_discords_rra, 8},
     {"_jmotif_series_to_wordbag", (DL_FUNC) &_jmotif_series_to_wordbag, 6},
     {"_jmotif_manyseries_to_wordbag", (DL_FUNC) &_jmotif_manyseries_to_wordbag, 6},
     {"_jmotif_bags_to_tfidf", (DL_FUNC) &_jmotif_bags_to_tfidf, 1},

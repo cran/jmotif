@@ -2,7 +2,14 @@
 
 // constructor
 //
-VisitRegistry::VisitRegistry( int capacity ) {
+// ``seed`` makes the shuffled visit order -- and hence the early-abandoning
+// search trajectory and its distance-call count -- reproducible. A negative
+// seed (the default) keeps the historical std::random_device behavior (a fresh,
+// nondeterministic order each run); seed >= 0 seeds the std::mt19937 engine so
+// repeated runs are byte-identical. The discord *result* is order-independent
+// either way.
+//
+VisitRegistry::VisitRegistry( int capacity, int seed ) {
 
   indexes = std::vector<int>(capacity);
   registry = std::vector<bool>(capacity);
@@ -11,8 +18,13 @@ VisitRegistry::VisitRegistry( int capacity ) {
     indexes[i] = i;
   }
 
-  std::random_device rd;
-  std::mt19937 g(rd());
+  std::mt19937 g;
+  if (seed < 0) {
+    std::random_device rd;
+    g.seed(rd());
+  } else {
+    g.seed((unsigned) seed);
+  }
   std::shuffle(std::begin(indexes), std::end(indexes), g);
 
   unvisited_count = capacity;

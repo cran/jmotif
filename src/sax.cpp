@@ -174,7 +174,7 @@ CharacterVector series_to_chars(NumericVector ts, int a_size) {
   for (int i=0; i<len; i++) {
     int ctr = 0;
     for(unsigned j=0; j<cuts.size(); j++){
-      if(cuts[j]<ts[i]){
+      if(cuts[j]<=ts[i]){ // <= : value exactly on a cut maps to the symbol ABOVE (aligns saxpy + Java canon; was strict <)
         ctr++;
       } else {
         break;
@@ -206,7 +206,7 @@ CharacterVector series_to_string(NumericVector ts, int a_size) {
   for (int i=0; i<len; i++) {
     int ctr = 0;
     for(unsigned j=0; j<cuts.size(); j++){
-      if(cuts[j]<ts[i]){
+      if(cuts[j]<=ts[i]){ // <= : value exactly on a cut maps to the symbol ABOVE (aligns saxpy + Java canon; was strict <)
         ctr++;
       } else {
         break;
@@ -224,7 +224,7 @@ std::string _series_to_string(std::vector<double> ts, int a_size) {
   for (int i=0; i<len; i++) {
     int ctr = 0;
     for(unsigned j=0; j<cuts.size(); j++){
-      if(cuts[j]<ts[i]){
+      if(cuts[j]<=ts[i]){ // <= : value exactly on a cut maps to the symbol ABOVE (aligns saxpy + Java canon; was strict <)
         ctr++;
       } else {
         break;

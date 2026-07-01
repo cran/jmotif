@@ -3,6 +3,7 @@
 //
 //#include <RcppArmadillo.h>
 #include <vector>
+#include <deque>
 #include <random>
 #include <Rcpp.h>
 using namespace Rcpp;
@@ -83,7 +84,7 @@ public:
   std::vector<bool> registry;
   std::vector<int> indexes;
   int unvisited_count;
-  VisitRegistry( int capacity );
+  VisitRegistry( int capacity, int seed = -1 );
   int getNextUnvisited();
   void markVisited(int idx);
   void markVisited(int start, int end);
@@ -91,14 +92,16 @@ public:
   ~VisitRegistry();
 };
 //
-Rcpp::DataFrame find_discords_brute_force(NumericVector ts, int w_size, int discords_num);
+Rcpp::DataFrame find_discords_brute_force(NumericVector ts, int w_size, int discords_num,
+                                          double n_threshold, int seed);
 //
 
 //
 // HOT-SAX
 //
 Rcpp::DataFrame find_discords_hotsax(NumericVector ts, int w_size, int paa_size,
-                                      int a_size, double n_threshold, int discords_num);
+                                      int a_size, double n_threshold, int discords_num,
+                                      int seed);
 
 //
 // REPAIR
@@ -198,26 +201,82 @@ public:
 };
 
 //
-// the priority queue taking care about repair digrams ordering
+// Arena/object pool for the RePair working objects.
+//
+// Every symbol/record/guard/rule/digram/pqueue-node the grammar inference allocates was
+// previously `new`'d and NEVER freed -- a leak that is benign for a single one-shot call
+// but accumulates (20x big_none peaked ~397 MB RSS). The pool owns all of them in
+// std::deque containers (NOT std::vector: the algorithm holds raw pointers --
+// r0[i]->next, rule->first/second, pqueue links -- across many later allocations, and
+// deque guarantees stable element addresses where vector realloc would dangle them).
+// A single pool, declared as the FIRST local of _str_to_repair_grammar, is destroyed
+// LAST (after the result is built), freeing everything in one shot on every exit path
+// (normal or exception). Object lifetimes within the call are unchanged.
+//
+class repair_pool {
+public:
+  std::deque<repair_symbol> symbols;
+  std::deque<repair_symbol_record> records;
+  std::deque<repair_guard> guards;
+  std::deque<repair_rule> rules;
+  std::deque<repair_digram> digrams;
+  std::deque<repair_pqueue_node> nodes;
+  repair_symbol* new_symbol(const std::string& str, int index) {
+    symbols.emplace_back(str, index);
+    return &symbols.back();
+  }
+  repair_symbol_record* new_record(repair_symbol* sym) {
+    records.emplace_back(sym);
+    return &records.back();
+  }
+  repair_guard* new_guard(repair_rule* rule, int idx) {
+    guards.emplace_back(rule, idx);
+    return &guards.back();
+  }
+  repair_rule* new_rule() {
+    rules.emplace_back();
+    return &rules.back();
+  }
+  repair_digram* new_digram(const std::string& str, int freq) {
+    digrams.emplace_back(str, freq);
+    return &digrams.back();
+  }
+  repair_pqueue_node* new_node(repair_digram* d) {
+    nodes.emplace_back(d);
+    return &nodes.back();
+  }
+};
+
+//
+// the priority queue taking care about repair digrams ordering.
+//
+// Bucketed (count-indexed) design (Larsson-Moffat): buckets[f] heads a doubly-linked
+// list of every digram whose frequency is exactly f; max_count tracks the highest
+// non-empty bucket. Max-select (dequeue) is an O(1) array index + downward scan past
+// empties; every +/-1 frequency change is an O(1) unlink + push-front. This replaces
+// the previous frequency-sorted single linked list whose enqueue / update did O(Q)
+// linear band-walks. The `nodes` map (digram -> node) is retained for O(1) locate.
+//
+// Order discipline (preserves rule numbering): push-FRONT within a bucket reproduces
+// the previous list's LIFO-within-band order exactly for the seed pass (pure enqueues),
+// so the dequeue order -- hence rule-id assignment -- is unchanged.
 //
 class repair_priority_queue {
 public:
-  repair_pqueue_node* queue_head; // queue head pointer
-  std::unordered_map<std::string, repair_pqueue_node*> nodes; // the fastmap <digram> -> <node>
+  std::vector<repair_pqueue_node*> buckets; // buckets[freq] -> head of that freq's list
+  int max_count;                            // highest non-empty bucket index
+  std::unordered_map<std::string, repair_pqueue_node*> nodes; // fastmap <digram> -> <node>
+  repair_pool* pool;                        // arena that owns the queue's nodes (not owned here)
   repair_priority_queue() {
-    queue_head = nullptr;
-    std::unordered_map<std::string, repair_pqueue_node*> nodes;
+    max_count = 0;
+    pool = nullptr;
   }
   repair_digram* enqueue(repair_digram* digram);
   repair_digram* dequeue();
-  repair_digram* peek();
-  repair_digram* get(std::string *digram_string);
   repair_digram* update_digram_frequency(std::string *digram_string, int new_value);
   bool contains_digram(std::string *digram_string);
-  std::vector<repair_digram> to_array();
   void remove_node(repair_pqueue_node* node);
   std::string to_string();
-  bool consistency_check();
 };
 
 //
@@ -243,13 +302,15 @@ struct rra_discord_record {
   int start;
   int end;
   double nn_distance;
+  int distance_calls;
 };
 
 std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s);
 Rcpp::List str_to_repair_grammar(CharacterVector str);
 
 Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size,
-  int a_size, CharacterVector nr_strategy, double n_threshold = 0.01, int discords_num = 3);
+  int a_size, CharacterVector nr_strategy, double n_threshold, int discords_num,
+  int seed);
 
 //
 // Utilities
@@ -269,6 +330,8 @@ std::vector<double> _znorm(const std::vector<double>& ts, double threshold);
 std::vector<double> _paa(std::vector<double> ts, int paa_num); // deprecated
 std::vector<double> _paa2(std::vector<double> ts, int paa_num);
 double _euclidean_dist(std::vector<double>* seq1, std::vector<double>* seq2);
+double _early_abandoned_dist(std::vector<double>* seq1, std::vector<double>* seq2,
+                             double upper_limit);
 std::vector<double> _subseries(std::vector<double>* ts, int start, int end);
 //
 std::string _series_to_string(std::vector<double> ts, int a_size);

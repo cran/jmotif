@@ -32,6 +32,27 @@ double _euclidean_dist(std::vector<double>* seq1, std::vector<double>* seq2) {
   return sqrt(res);
 }
 
+// early-abandoned version for internal use (std::vector, no Rcpp conversion):
+// accumulates the squared distance and bails out returning NaN as soon as it
+// exceeds the running nearest-neighbour distance, so the caller's `dist <
+// nnDistance` test naturally rejects abandoned candidates. upper_limit ==
+// double::max() means "no limit yet" (the first comparison).
+double _early_abandoned_dist(std::vector<double>* seq1, std::vector<double>* seq2,
+                             double upper_limit) {
+  double limit = upper_limit;
+  if(limit != std::numeric_limits<double>::max()){
+    limit = upper_limit * upper_limit;
+  }
+  double res = 0.0;
+  for(unsigned i=0; i<seq1->size(); i++){
+    res = res + (seq1->at(i) - seq2->at(i)) * (seq1->at(i) - seq2->at(i));
+    if(res > limit){
+      return std::numeric_limits<double>::quiet_NaN();
+    }
+  }
+  return sqrt(res);
+}
+
 //' Finds the Euclidean distance between points, if distance is above the threshold, abandons the computation
 //' and returns NAN.
 //'

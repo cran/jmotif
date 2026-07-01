@@ -100,6 +100,14 @@ std::vector<double> _paa2(std::vector<double> ts, int paa_num) {
     for(int i = 0; i < paa_num + 1; i++){
       breaks[i] = i * points_per_segment;
     }
+    // The final break is paa_num * (len/paa_num), which should be exactly len
+    // but in IEEE-754 often rounds to len + epsilon (e.g. 7*(29/7) =
+    // 29.000000000000004). That makes floor(seg_end) == len for the last
+    // segment, so frac_end collapses to ~1e-15 and the last sample is dropped
+    // from the segment sum while the divisor stays the same -- corrupting the
+    // final PAA value. Snap it to len so the boundary is handled exactly,
+    // matching the saxpy / Java fractional PAA.
+    breaks[paa_num] = (double) len;
     // Rcout << "ts length: " << len << ", breaks: ";
     // for(auto it=breaks.begin(); it<breaks.end(); ++it){
     //   Rcout << *it << ", ";

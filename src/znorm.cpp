@@ -38,7 +38,11 @@ std::vector<double> _znorm(const std::vector<double>& ts, double threshold) {
     diff[i] = ts[i]-mean;
 
   double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-  double stdev = std::sqrt(sq_sum / (ts.size()-1));
+  // Population standard deviation (divide by n, not n-1). This matches the
+  // Matrix Profile / MASS convention and the saxpy reference, and makes each
+  // normalized window have empirical variance exactly 1 -- the assumption
+  // behind SAX's equiprobable Gaussian breakpoints. (Aligned 2026-06; was n-1.)
+  double stdev = std::sqrt(sq_sum / ts.size());
   // Rcout << " stdev2 " << stdev << "\n";
 
   if (stdev < threshold) return ts; // return clone

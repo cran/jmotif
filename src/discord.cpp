@@ -2,14 +2,15 @@
 
 // this finds the best discord given a time series, sliding window size, and a
 // "registry" of the position which are to be tested
-discord_record find_best_discord_brute_force(const NumericVector& series,
-                                             int w_size, VisitRegistry* globalRegistry) {
+discord_record find_best_discord_brute_force(const NumericVector& series, int w_size,
+                                             std::vector<std::vector<double>>* znorms,
+                                             VisitRegistry* globalRegistry, int seed = -1) {
 
   double best_so_far_distance = -1.0;
   int best_so_far_index = -1;
   unsigned int dist_calls = 0;
 
-  VisitRegistry outerRegistry(series.size() - w_size);
+  VisitRegistry outerRegistry(series.size() - w_size, seed);
   int outer_idx = outerRegistry.getNextUnvisited();
 
   while(!(-1==outer_idx)){ // while there is a position to try
@@ -20,18 +21,20 @@ discord_record find_best_discord_brute_force(const NumericVector& series,
       continue; // break the loop
     }
 
-    NumericVector candidate_seq = subseries(series, outer_idx, outer_idx + w_size);
+    // distance is measured between z-NORMED windows (shape similarity), matching
+    // HOT-SAX and the saxpy / Java implementations; znorms are precomputed.
+    std::vector<double>* candidate_seq = &(znorms->at(outer_idx));
 
     double nnDistance = std::numeric_limits<double>::max();
-    VisitRegistry innerRegistry(series.size() - w_size);
+    VisitRegistry innerRegistry(series.size() - w_size, seed);
 
     int inner_idx = innerRegistry.getNextUnvisited();
     while(!(-1==inner_idx)){
       innerRegistry.markVisited(inner_idx);
-      if(std::abs(inner_idx - outer_idx) > w_size) { // if no overlap between two intervals
-        NumericVector curr_seq = subseries(series, inner_idx, inner_idx + w_size);
-        double dist = early_abandoned_dist(candidate_seq, curr_seq, nnDistance);
-        //double dist = euclidean_dist(candidate_seq, curr_seq);
+      // non-overlap: |i - j| >= w_size (>= matches saxpy)
+      if(std::abs(inner_idx - outer_idx) >= w_size) {
+        std::vector<double>* curr_seq = &(znorms->at(inner_idx));
+        double dist = _early_abandoned_dist(candidate_seq, curr_seq, nnDistance);
         dist_calls = dist_calls + 1;
         if ( (!std::isnan(dist)) && dist < nnDistance) {
           nnDistance = dist;
@@ -40,8 +43,11 @@ discord_record find_best_discord_brute_force(const NumericVector& series,
       inner_idx = innerRegistry.getNextUnvisited();
     }
 
-    if (!(std::numeric_limits<double>::max() == nnDistance)
-          && (nnDistance > best_so_far_distance)) {
+    // strictly larger NN distance, or exact tie with a smaller index
+    // (deterministic lowest-index tie-break, matching saxpy)
+    if (nnDistance != std::numeric_limits<double>::max()
+          && (nnDistance > best_so_far_distance
+              || (nnDistance == best_so_far_distance && outer_idx < best_so_far_index))) {
       best_so_far_distance = nnDistance;
       best_so_far_index = outer_idx;
     }
@@ -62,6 +68,11 @@ discord_record find_best_discord_brute_force(const NumericVector& series,
 //' @param ts the input timeseries.
 //' @param w_size the sliding window size.
 //' @param discords_num the number of discords to report.
+//' @param n_threshold the z-normalization threshold.
+//' @param seed the random seed for the candidate visit order; a negative value
+//' (the default) leaves it non-reproducible, a non-negative value makes the
+//' search trajectory (and its distance-call count) reproducible. The reported
+//' discords are identical either way.
 //' @useDynLib jmotif
 //' @export
 //' @references Keogh, E., Lin, J., Fu, A.,
@@ -74,19 +85,29 @@ discord_record find_best_discord_brute_force(const NumericVector& series,
 //'    y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
 // [[Rcpp::export]]
 Rcpp::DataFrame find_discords_brute_force(
-    NumericVector ts, int w_size, int discords_num) {
+    NumericVector ts, int w_size, int discords_num, double n_threshold = 0.01,
+    int seed = -1) {
 
   std::vector<int> positions;
   std::vector<unsigned int> distance_calls;
   std::vector<double > distances;
 
-  VisitRegistry registry(ts.length());
+  // Precompute z-normed windows once (distance is on z-normed shape).
+  std::vector<double> series = Rcpp::as< std::vector<double> >(ts);
+  int n_windows = series.size() - w_size + 1;
+  std::vector<std::vector<double>> znorms(n_windows);
+  for(int i = 0; i < n_windows; i++){
+    std::vector<double> sub(series.begin() + i, series.begin() + i + w_size);
+    znorms[i] = _znorm(sub, n_threshold);
+  }
+
+  VisitRegistry registry(ts.length(), seed);
   registry.markVisited(ts.length() - w_size, ts.length());
 
   int discord_counter = 0;
   while(discord_counter < discords_num){
 
-    discord_record rec = find_best_discord_brute_force(ts, w_size, &registry);
+    discord_record rec = find_best_discord_brute_force(ts, w_size, &znorms, &registry, seed);
 
     if(rec.nn_distance == 0 || rec.index == -1){ break; }
 
@@ -94,7 +115,8 @@ Rcpp::DataFrame find_discords_brute_force(
     distances.push_back(rec.nn_distance);
     distance_calls.push_back(rec.dist_calls);
 
-    int start = rec.index - w_size;
+    // exclusion zone +/-(w_size-1) (markVisited end exclusive), matching saxpy
+    int start = rec.index - w_size + 1;
     if(start<0){
       start = 0;
     }

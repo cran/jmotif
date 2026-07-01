@@ -1,5 +1,5 @@
 Package: jmotif
-Version: 1.2.1
+Version: 1.3.0
 Encoding: UTF-8
 Title: Time Series Analysis Toolkit Based on Symbolic Aggregate
         Discretization, i.e. SAX
@@ -17,8 +17,8 @@ LazyData: true
 License: GPL-2
 RoxygenNote: 7.3.3
 NeedsCompilation: yes
-Packaged: 2025-12-22 10:47:29 UTC; psenin
+Packaged: 2026-06-30 16:28:07 UTC; psenin
 Author: Pavel Senin [aut, cre]
 Maintainer: Pavel Senin <seninp@gmail.com>
 Repository: CRAN
-Date/Publication: 2025-12-22 11:00:02 UTC
+Date/Publication: 2026-07-01 21:10:02 UTC

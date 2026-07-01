@@ -15,13 +15,16 @@ test_that("SAX exact #1", {
 
   sax2 <- sax_via_window(t(dat), 6, 3, 3, "exact", 0.01)
 
-  expect_equal(length(sax2), 46)
+  # Lengths/keys shifted under the 1.3.0 population-std znorm (more near-
+  # breakpoint symbols changed, so exact numerosity reduction collapses
+  # differently). Access by key rather than positional index.
+  expect_equal(length(sax2), 44)
 
-  expect_equal(sax2$'0', "bba")
-  expect_equal(sax2[[0 + 1]], "bba")
+  expect_equal(sax2$'0', "cca")
+  expect_equal(sax2[['0']], "cca")
 
   expect_equal(sax2$'52', "acc")
-  expect_equal(sax2[[45]], "acc")
+  expect_equal(sax2[['52']], "acc")
 
   expect_equal(sax2[['10']], "aac")
   expect_null(sax2[['11']])
@@ -32,7 +35,7 @@ test_that("SAX exact #1", {
 test_that("SAX exact #2", {
 
   sax4 <- sax_via_window(t(dat), 30, 3, 3, "exact", 0.01)
-  expect_equal(length(sax4), 5)
+  expect_equal(length(sax4), 6)
   expect_equal(sax4[['29']], "acb")
   expect_equal(sax4[['30']], "bbb")
 })

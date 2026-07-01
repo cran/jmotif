@@ -5,6 +5,7 @@
 #include <ctime>
 #include <vector>
 #include <random>
+#include <algorithm> // std::stable_sort, std::max
 
 
 class rule_interval {
@@ -21,49 +22,43 @@ struct sort_intervals {
   }
 };
 
-double _normalized_distance(int start1, int end1, int start2, int end2, std::vector<double> *series){
+// Per-point normalized Euclidean distance between two subsequences.
+//
+// Both subsequences are Z-NORMALIZED before the distance is taken, so the
+// comparison is of shape, not amplitude/offset -- matching the HOT-SAX and
+// brute-force discord routines (hot-sax.cpp / discord.cpp both _znorm their
+// windows) and the canonical jMotif GrammarViz RRA. When the spans differ in
+// length, the longer is first PAA-reduced (_paa2) to the shorter length. The
+// result is euclidean(znorm(a), znorm(b)) / count, divided by the number of
+// compared points so spans of different lengths stay comparable.
+double _normalized_distance(int start1, int end1, int start2, int end2,
+                            std::vector<double> *series, double n_threshold){
 
   double res = 0;
-  int count = 0;
   int len1 = end1 - start1;
   int len2 = end2 - start2;
+  int count = std::min(len1, len2);
 
+  std::vector<double> a, b;
   if(len1 == len2){
-    for(int i=0; i<len1; i++){
-      res = res + (series->at(start1+i) - series->at(start2+i)) *
-                        (series->at(start1+i) - series->at(start2+i));
-      count++;
-    }
-    return sqrt(res) / (double) count;
-  }
-
-  int min_length = std::min(len1, len2);
-  if(len1 == min_length){
-    std::vector<double> subseries(len2);
-    for(int i=0; i<len2; i++){
-      subseries[i] = series->at(start2+i);
-    }
-    std::vector<double> subseries_paa = _paa2(subseries, len1);
-    for(int i=0; i<len1; i++){
-      res = res + (series->at(start1+i) - subseries_paa[i]) *
-        (series->at(start1+i) - subseries_paa[i]);
-      count++;
-    }
-    return sqrt(res) / (double) count;
-
+    a.assign(series->begin() + start1, series->begin() + end1);
+    b.assign(series->begin() + start2, series->begin() + end2);
+  } else if(len1 < len2){
+    a.assign(series->begin() + start1, series->begin() + end1);
+    std::vector<double> longer(series->begin() + start2, series->begin() + end2);
+    b = _paa2(longer, len1);
   } else {
-    std::vector<double> subseries(len1);
-    for(int i=0; i<len1; i++){
-      subseries[i] = series->at(start1+i);
-    }
-    std::vector<double> subseries_paa = _paa2(subseries, len2);
-    for(int i=0; i<len2; i++){
-      res = res + (subseries_paa[i] - series->at(start2+i)) *
-        (subseries_paa[i] - series->at(start2+i));
-      count++;
-    }
-    return sqrt(res) / (double) count;
+    b.assign(series->begin() + start2, series->begin() + end2);
+    std::vector<double> longer(series->begin() + start1, series->begin() + end1);
+    a = _paa2(longer, len2);
   }
+
+  std::vector<double> za = _znorm(a, n_threshold);
+  std::vector<double> zb = _znorm(b, n_threshold);
+  for(int i=0; i<count; i++){
+    res = res + (za[i] - zb[i]) * (za[i] - zb[i]);
+  }
+  return sqrt(res) / (double) count;
 }
 
 double _shrinked_distance(int start1, int end1, int start2, int end2, std::vector<double> *series){
@@ -102,7 +97,8 @@ double _mean(std::vector<int> *ts, int *start, int *end){
 rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
       std::unordered_map<int, rule_record*> *grammar, std::vector<int> *indexes,
       std::vector<rule_interval> *intervals,
-      std::unordered_set<int> *global_visited_positions){
+      std::unordered_set<int> *global_visited_positions, double n_threshold,
+      int seed = -1){
 
   // *****
   // std::chrono::time_point<std::chrono::system_clock> tstart0, tstart, tend;
@@ -178,7 +174,7 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
          // end << std::endl;
         distance_calls_counter++;
         double dist = _normalized_distance(c_interval.start, c_interval.end,
-                                          start, end, ts);
+                                          start, end, ts, n_threshold);
         // keep track of best so far distance
         if (dist < nn_distance) {
           // Rcout << "    better nn distance found " << dist << std::endl;
@@ -228,7 +224,14 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
       // shuffle the visit array
       // only shuffle the filled portion of visit_array
       if (cIndex >= 0) {
-        auto rng = std::default_random_engine {};
+        // seed < 0 keeps the historical default-constructed engine (a fixed
+        // default seed -- deterministic but not caller-controllable); seed >= 0
+        // makes the phase-2 visit order caller-reproducible. Either way the
+        // discord result is order-independent; only the distance-call count and
+        // search trajectory depend on the order.
+        std::default_random_engine rng = (seed < 0)
+            ? std::default_random_engine{}
+            : std::default_random_engine{(unsigned) seed};
         // std::shuffle(std::begin(visit_array), std::end(visit_array), rng); # old bad code, throws us into -1 zone
         std::shuffle(visit_array.begin(), visit_array.begin() + cIndex + 1, rng);
       }
@@ -252,7 +255,7 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
         distance_calls_counter++;
         double dist = _normalized_distance(
           c_interval.start, c_interval.end,
-          randomInterval.start, randomInterval.end, ts
+          randomInterval.start, randomInterval.end, ts, n_threshold
         );
 
         if (dist < bestSoFarDistance) {
@@ -316,6 +319,7 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
   res.start = bestSoFarPosition;
   res.end = bestSoFarPosition + bestSoFarLength;
   res.nn_distance = bestSoFarDistance;
+  res.distance_calls = distance_calls_counter;
 
   return res;
 }
@@ -331,6 +335,12 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
 //' @param nr_strategy the numerosity reduction strategy ("none", "exact", "mindist").
 //' @param n_threshold the normalization threshold.
 //' @param discords_num the number of discords to report.
+//' @param seed the random seed for the phase-2 search-order shuffle. The default
+//' (a negative value) keeps the historical fixed-default engine, which is itself
+//' deterministic but not caller-controllable; a non-negative value lets the
+//' caller choose the shuffle, so a different reproducible search trajectory (and
+//' distance-call count) can be obtained. The reported discords are identical
+//' either way -- only the search trajectory depends on it.
 //' @useDynLib jmotif
 //' @export
 //' @references Senin Pavel and Malinchik Sergey,
@@ -343,8 +353,8 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
 //'    y=ecg0606[discords[1,2]:(discords[1,2]+100)], col="red")
 // [[Rcpp::export]]
 Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size,
-  int a_size, CharacterVector nr_strategy, double n_threshold,
-  int discords_num){
+  int a_size, CharacterVector nr_strategy, double n_threshold = 0.01,
+  int discords_num = 3, int seed = -1){
 
   // *****
   // std::chrono::time_point<std::chrono::system_clock> tstart0, tstart, tend;
@@ -429,7 +439,12 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
       rr.rule_id = it->first;
       rr.start = start;
       rr.end = end;
-      // rr.cover = it->second->rule_use; // a shortcut
+      // Sort key set at construction (mirrors GrammarViz Java
+      // RuleInterval.setCoverage(rule.getRuleIntervals().size()),
+      // GrammarVizAnomaly.java:740): RULE FREQUENCY -- the number of
+      // occurrences of this interval's grammar rule, NOT per-point coverage.
+      // A rule seen once is, by construction, the most anomalous pattern.
+      rr.cover = (double) (it->second)->rule_intervals.size();
       intervals.push_back(rr);
     }
   }
@@ -443,6 +458,50 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
   bool need_placement = false;
   int start = -1;
   bool in_interval = false;
+
+  // Fix-1 (cross-impl port from the saxpy sibling, commit 822503b): SKIP
+  // DEGENERATE zero-coverage runs shorter than a single PAA segment.
+  //
+  // WHAT: only emit a synthetic rule_id == -1 candidate when the uncovered
+  // stretch is at least min_uncovered = max(2, paa_size) points long. A run of
+  // length 1 (or any sub-paa_size span) is shorter than one PAA segment, so it
+  // is not a discoverable variable-length subsequence -- there is nothing for
+  // the RRA NN search to legitimately rank as a discord there. A common trigger
+  // is position 0 when RePair leaves the first SAX word as a bare terminal in
+  // R0, leaving a single uncovered point.
+  //
+  // WHY: (a) sub-PAA-segment non-discoverability (above), and (b) cross-impl
+  // CONSISTENCY with the saxpy port, which already skips these (saxpy/rra.py,
+  // min_uncovered = max(2, paa_size)). In saxpy the run is also numerically
+  // pathological: _fast_znorm mean-centers a length-1 span to [0.0], making its
+  // distance 0 to *everything*, which both fabricates a spurious nn=0 "discord"
+  // and poisons the early-abandon best-so-far, inflating distance calls ~20x
+  // (ECG308 100,4,4: saxpy 479,346 calls with the fix). This C++ port does NOT
+  // share that catastrophe: _znorm (znorm.cpp) returns the RAW UNCENTERED clone
+  // when stdev < threshold, so a length-1 span yields a NONZERO distance, not 0.
+  // On the ECG308 100,4,4 row we benchmarked the degenerate span was NOT the
+  // winning discord -- but it CAN win on other rows: an A/B build comparison
+  // found the C++ original (no Fix-1) reporting rule_id == -1, [0,1) (length 1)
+  // as its #1 discord at ecg 100,1,2 and at a seed-99 random walk 100,4,4
+  // (nonzero nn ~0.22, non-catastrophic but still a meaningless 1-point span).
+  // So Fix-1 does change the result on those rows -- in the INTENDED direction,
+  // removing the meaningless top "discord" and surfacing the real ones. Where it
+  // was not already winning, this just removes a meaningless extra candidate; in
+  // neither case is it fixing a poisoned search. The perf delta is therefore
+  // expected to be modest (possibly neutral on rows with no short run) and is to
+  // be MEASURED, not assumed.
+  //
+  // This DELIBERATELY DIVERGES from the authoritative Java GrammarViz
+  // (GrammarVizAnomaly.getZeroIntervals, lines 922-939), which keeps EVERY zero
+  // run including length 1 (`new RuleInterval(id, start, i, 0)` with no length
+  // guard). The divergence is justified by the two points above; the per-point
+  // behavior is otherwise identical to Java (cover = 0 still sorts these first).
+  //
+  // Signedness: the loop counter i is unsigned and start is int, so compute the
+  // run length as a signed int (run_len = (int)i - start) before comparing, to
+  // avoid an unsigned-promotion comparison.
+  int min_uncovered = std::max(2, paa_size);
+
   for (unsigned i = 0; i < coverage_array.size(); i++) {
     if (0 == coverage_array[i] && !in_interval) {
       start = i;
@@ -450,36 +509,91 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
     }
     if (coverage_array[i] > 0 && in_interval) {
 
-      need_placement = true;
+      int run_len = (int) i - start;
+      if (run_len >= min_uncovered) {
 
-      rule_interval ri;
-      ri.cover=0;
-      ri.start = start;
-      ri.end=i;
-      ri.rule_id=-1;
-      intervals.push_back(ri);
+        need_placement = true;
 
-      rec_zero_cover->rule_occurrences.push_back(start);
-      rec_zero_cover->rule_intervals.push_back(std::make_pair(start, i));
+        rule_interval ri;
+        // Zero-coverage stretch: no grammar rule covers it. cover = 0 makes these
+        // sort FIRST (rarest-first) -- an uncovered span is maximally anomalous.
+        // This matches the authoritative Java GrammarViz exactly: getZeroIntervals
+        // builds them as `new RuleInterval(id, start, i, 0)` (coverage == 0,
+        // GrammarVizAnomaly.java:933). NOTE this INTENTIONALLY diverges from the
+        // saxpy port and from this file's previous post-pass, which both ranked
+        // zero spans by their OWN occurrence count (len(zero_rule.intervals));
+        // cover = 0 pushes them ahead of every count>=1 rule instead.
+        ri.cover = 0;
+        ri.start = start;
+        ri.end=i;
+        ri.rule_id=-1;
 
-      intervals.push_back(ri);
+        rec_zero_cover->rule_occurrences.push_back(start);
+        rec_zero_cover->rule_intervals.push_back(std::make_pair(start, i));
 
+        // NOTE: this interval was previously push_back'd TWICE (once before and
+        // once after the rec_zero_cover bookkeeping), duplicating every
+        // zero-coverage candidate in the search list -- inflating the candidate
+        // set and wasting distance calls on an identical interval. Insert once.
+        intervals.push_back(ri);
+
+        // Rcout << " zero coverage from " << start << " to " << i << std::endl;
+      }
+
+      // The run always closes when coverage turns positive, whether or not it
+      // qualified above -- mirrors saxpy, where `in_interval = False` sits
+      // OUTSIDE the `if i - start >= min_uncovered:` length guard.
       in_interval = false;
-      // Rcout << " zero coverage from " << start << " to " << i << std::endl;
     }
   }
 
   if(need_placement) {
     grammar.emplace(std::make_pair(-1, rec_zero_cover));
+  } else {
+    // Fix-1 makes the "no zero run survived the guard" path reachable for the
+    // first time (previously every closed run set need_placement = true and
+    // rec_zero_cover was always emplaced into `grammar`). Free the unused
+    // heap-allocated record here so the new path does not leak it.
+    delete rec_zero_cover;
   }
 
-  // compute the coverage
-  for(auto it=intervals.begin(); it !=intervals.end(); ++it){
-    it->cover = _mean(&coverage_array, &it->start, &it->end);
-  }
+  // Rank the candidate intervals "rarest first" so the early-abandoning NN
+  // search builds a strong best-so-far distance quickly.
+  //
+  // Sort key: RULE FREQUENCY -- the number of occurrences of the interval's
+  // grammar rule (a rule seen once is, by construction, the most anomalous
+  // pattern). This matches the canonical jMotif GrammarViz (Java) RRA and the
+  // saxpy port. We reuse the `cover` field (and the existing sort_intervals
+  // comparator, left.cover < right.cover) to carry the frequency, so a small
+  // count sorts first. The frequency is now set on each interval at
+  // construction time (see the build loop above and the zero-coverage block),
+  // so no separate pass is needed here -- the comparator just reads the
+  // pre-set field, exactly as the Java reference does
+  // (RRAImplementation.findBestDiscordForIntervals sorts on getCoverage()).
+  //
+  // NOTE -- alternative ordering: MEAN PER-POINT COVERAGE (how many rules
+  // overlap each point of the span), jmotif-R's historical key. It is a local
+  // density measure rather than a pattern-rarity one, and the two are nearly
+  // uncorrelated. To use coverage instead, set cover from the coverage curve
+  // with a pass like:
+  //     for(auto it=intervals.begin(); it!=intervals.end(); ++it)
+  //         it->cover = _mean(&coverage_array, &it->start, &it->end);
+  //
+  // Tie handling: the key is a small INTEGER frequency, so large tie-groups
+  // form (all freq-1 rules, all freq-2 rules, ...). We use std::STABLE_sort to
+  // match the two reference impls -- Java's Collections.sort (stable TimSort,
+  // single Double.compare key, NO secondary key) and saxpy's list.sort (also
+  // stable). stable_sort preserves construction order within a tie-group and
+  // removes the run-to-run / STL-version reordering that the previous std::sort
+  // could introduce. Note FULL byte-for-byte tie order still cannot match Java:
+  // the construction order itself differs because `grammar` is a
+  // std::unordered_map (implementation-defined iteration order) whereas Java
+  // iterates rules in deterministic id order. We deliberately keep the single
+  // frequency key with no secondary tie-break, mirroring all three sibling
+  // implementations rather than inventing one here.
 
-  // sort the intervals rare < frequent
-  std::sort(intervals.begin(), intervals.end(), sort_intervals());
+  // sort the intervals rare < frequent (stable: preserve construction order on ties)
+  std::stable_sort(intervals.begin(), intervals.end(), sort_intervals());
 
 
   // ******
@@ -507,7 +621,7 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
     // tstart = std::chrono::system_clock::now();
 
     rra_discord_record d = find_best_rra_discord(&ts, w_size, &grammar,
-                              &indexes, &intervals, &global_visited_positions);
+                              &indexes, &intervals, &global_visited_positions, n_threshold, seed);
     // Rcout << d.nn_distance;
 
     if(d.nn_distance<0){
@@ -545,6 +659,7 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
   std::vector<int> ends;
   std::vector<int> lengths;
   std::vector<double > nn_distances;
+  std::vector<int> distance_calls;
 
 
   for(auto it = discords.begin(); it != discords.end(); it++) {
@@ -553,6 +668,7 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
     ends.push_back(it->end);
     lengths.push_back(it->end - it->start);
     nn_distances.push_back(it->nn_distance);
+    distance_calls.push_back(it->distance_calls);
   }
 
   // make results
@@ -561,7 +677,8 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
     Named("start") = starts,
     Named("end") = ends,
     Named("length") = lengths,
-    Named("nn_distance") = nn_distances
+    Named("nn_distance") = nn_distances,
+    Named("distance_calls") = distance_calls
   );
 
 }
