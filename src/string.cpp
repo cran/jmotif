@@ -11,7 +11,10 @@
 //' idx_to_letter(2)
 // [[Rcpp::export]]
 char idx_to_letter(int idx) {
-  return LETTERS[idx-1];
+  if (idx < 1 || idx > 26) {
+    stop("'idx' is out of range [1, 26]");
+  }
+  return LETTERS[idx - 1];
 }
 
 //' Get the index for an ASCII letter.
@@ -85,18 +88,17 @@ bool is_equal_mindist(CharacterVector a, CharacterVector b) {
   return true;
 }
 
-/* bool _is_equal_mindist(std::string a, std::string b) {
+bool _is_equal_mindist(std::string a, std::string b) {
   if(a.length() != b.length()){
     return false;
-  }else{
-    for(unsigned i=0; i<a.length(); i++){
-      if( abs(a[i] - b[i]) > 1 ){
-        return false;
-      }
+  }
+  for(unsigned i=0; i<a.length(); i++){
+    if( abs(a[i] - b[i]) > 1 ){
+      return false;
     }
   }
   return true;
-}*/
+}
 
 int _count_spaces(std::string *s) {
   int count = 0;

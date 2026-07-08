@@ -8,7 +8,7 @@
 #include <iostream>
 #include <sstream>
 
-std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
+std::unordered_map<int, rule_record> _str_to_repair_grammar(std::string s) {
   // Rcout<<s<<"\n";
 
   // define the objects we are working with
@@ -23,8 +23,7 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
   // Arena owning every working object (symbols/records/guards/rules/digrams/pq-nodes).
   // Declared FIRST so it is destroyed LAST -- after `res` is built -- freeing the lot on
   // every exit path. Replaces the previous never-freed `new` allocations. The returned
-  // rule_record objects are NOT pooled (the caller owns them); they deep-copy the strings
-  // and vectors they need out of pooled objects before this function returns.
+  // rule_record values in the returned map are owned by the map (by value).
   repair_pool pool;
 
   // the grammar keeper
@@ -481,32 +480,32 @@ std::unordered_map<int, rule_record*> _str_to_repair_grammar(std::string s) {
 //     Rcout << "]" << std::endl;
 //   }
 
-  // make results
-  std::unordered_map<int, rule_record*> res;
+  // make results (by-value map: no heap-allocated rule_record pointers to leak)
+  std::unordered_map<int, rule_record> res;
 
   // the R0
-  rule_record* rec0 = new rule_record();
-  rec0->rule_id = 0;
-  rec0->rule_string = ss.str();
-  rec0->expanded_rule_string = s;
-  rec0->rule_occurrences.push_back(-1);
-  rec0->rule_intervals.push_back(std::make_pair(0, str_length));
-  res.emplace(std::make_pair(0, rec0));
+  rule_record rec0;
+  rec0.rule_id = 0;
+  rec0.rule_string = ss.str();
+  rec0.expanded_rule_string = s;
+  rec0.rule_occurrences.push_back(-1);
+  rec0.rule_intervals.push_back(std::make_pair(0, str_length));
+  res.emplace(0, rec0);
 
   // the rest of the grammar
   for(std::map<int, repair_rule*>::iterator it = grammar.begin();
       it != grammar.end(); ++it) {
-    rule_record* rr = new rule_record();
-    rr->rule_id = it->first;
-    rr->rule_string = it->second->get_rule_string();
-    rr->expanded_rule_string = it->second->expanded_rule_string;
-    rr->rule_occurrences = it->second->occurrences;
-    for(std::vector<int>::iterator oi = rr->rule_occurrences.begin();
-        oi != rr->rule_occurrences.end(); ++oi) {
-      rr->rule_intervals.push_back(std::make_pair(*oi,
-          *oi + _count_spaces(&rr->expanded_rule_string)));
+    rule_record rr;
+    rr.rule_id = it->first;
+    rr.rule_string = it->second->get_rule_string();
+    rr.expanded_rule_string = it->second->expanded_rule_string;
+    rr.rule_occurrences = it->second->occurrences;
+    for(std::vector<int>::iterator oi = rr.rule_occurrences.begin();
+        oi != rr.rule_occurrences.end(); ++oi) {
+      rr.rule_intervals.push_back(std::make_pair(*oi,
+          *oi + _count_spaces(&rr.expanded_rule_string)));
     }
-    res.emplace(std::make_pair(it->first, rr));
+    res.emplace(it->first, rr);
   }
 
   return res;
@@ -528,24 +527,24 @@ Rcpp::List str_to_repair_grammar(CharacterVector str){
   std::string s = Rcpp::as<std::string>(str);
 
   // run the c++ implementation
-  std::unordered_map<int, rule_record*> rules = _str_to_repair_grammar(s);
+  std::unordered_map<int, rule_record> rules = _str_to_repair_grammar(s);
 
   // make results
   Rcpp::List res(rules.size());
 
   for(unsigned i = 0; i < rules.size(); ++i) {
 
-    std::unordered_map<int, rule_record*>::iterator it = rules.find(i);
+    std::unordered_map<int, rule_record>::iterator it = rules.find(i);
 
     std::stringstream ss;
-    ss << it->second->rule_id;
+    ss << it->second.rule_id;
     Rcpp::CharacterVector rule_name = "R" + ss.str();
 
-    Rcpp::CharacterVector rule_string = it->second->rule_string;
-    Rcpp::CharacterVector expanded_rule_string = it->second->expanded_rule_string;
-    Rcpp::NumericVector rule_interval_starts = Rcpp::wrap(it->second->rule_occurrences);
+    Rcpp::CharacterVector rule_string = it->second.rule_string;
+    Rcpp::CharacterVector expanded_rule_string = it->second.expanded_rule_string;
+    Rcpp::NumericVector rule_interval_starts = Rcpp::wrap(it->second.rule_occurrences);
     Rcpp::NumericVector rule_interval_ends(rule_interval_starts.length());
-    int spaces_count = _count_spaces(&it->second->expanded_rule_string);
+    int spaces_count = _count_spaces(&it->second.expanded_rule_string);
     // Rcout << "spaces: " <<spaces_count <<"\n";
     for(int j=0; j<rule_interval_starts.length(); ++j) {
      rule_interval_ends[j] = rule_interval_starts[j] + spaces_count;

@@ -1,6 +1,8 @@
 test_that("idx to letter", {
   expect_true(is.character(idx_to_letter(3)))
   expect_equal(idx_to_letter(3), "c")
+  expect_error(idx_to_letter(0))
+  expect_error(idx_to_letter(27))
 })
 
 test_that("letter to idx", {

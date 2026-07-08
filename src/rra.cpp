@@ -31,34 +31,146 @@ struct sort_intervals {
 // length, the longer is first PAA-reduced (_paa2) to the shorter length. The
 // result is euclidean(znorm(a), znorm(b)) / count, divided by the number of
 // compared points so spans of different lengths stay comparable.
-double _normalized_distance(int start1, int end1, int start2, int end2,
-                            std::vector<double> *series, double n_threshold){
+namespace {
 
-  double res = 0;
+double slice_mean(const std::vector<double>& ts, int start, int end) {
+  double sum = 0.0;
+  for (int i = start; i < end; i++) {
+    sum += ts[i];
+  }
+  return sum / (end - start);
+}
+
+double slice_stdev_pop(const std::vector<double>& ts, int start, int end, double mean) {
+  double sq_sum = 0.0;
+  for (int i = start; i < end; i++) {
+    double d = ts[i] - mean;
+    sq_sum += d * d;
+  }
+  return std::sqrt(sq_sum / (end - start));
+}
+
+double vec_mean(const std::vector<double>& v) {
+  double sum = 0.0;
+  for (double x : v) {
+    sum += x;
+  }
+  return sum / v.size();
+}
+
+double vec_stdev_pop(const std::vector<double>& v, double mean) {
+  double sq_sum = 0.0;
+  for (double x : v) {
+    double d = x - mean;
+    sq_sum += d * d;
+  }
+  return std::sqrt(sq_sum / v.size());
+}
+
+double znormed_rms_dist_equal(
+    const std::vector<double>& ts, int s1, int e1, int s2, int e2,
+    double n_threshold) {
+  int n = e1 - s1;
+  double m1 = slice_mean(ts, s1, e1);
+  double m2 = slice_mean(ts, s2, e2);
+  double sd1 = slice_stdev_pop(ts, s1, e1, m1);
+  double sd2 = slice_stdev_pop(ts, s2, e2, m2);
+  bool raw1 = sd1 < n_threshold;
+  bool raw2 = sd2 < n_threshold;
+
+  double res = 0.0;
+  for (int i = 0; i < n; i++) {
+    double a = raw1 ? ts[s1 + i] : (ts[s1 + i] - m1) / sd1;
+    double b = raw2 ? ts[s2 + i] : (ts[s2 + i] - m2) / sd2;
+    double d = a - b;
+    res += d * d;
+  }
+  return std::sqrt(res) / n;
+}
+
+double znormed_rms_dist_slice_vec(
+    const std::vector<double>& ts, int s1, int e1,
+    const std::vector<double>& b, double n_threshold) {
+  int n = e1 - s1;
+  double m1 = slice_mean(ts, s1, e1);
+  double m2 = vec_mean(b);
+  double sd1 = slice_stdev_pop(ts, s1, e1, m1);
+  double sd2 = vec_stdev_pop(b, m2);
+  bool raw1 = sd1 < n_threshold;
+  bool raw2 = sd2 < n_threshold;
+
+  double res = 0.0;
+  for (int i = 0; i < n; i++) {
+    double a = raw1 ? ts[s1 + i] : (ts[s1 + i] - m1) / sd1;
+    double bv = raw2 ? b[i] : (b[i] - m2) / sd2;
+    double d = a - bv;
+    res += d * d;
+  }
+  return std::sqrt(res) / n;
+}
+
+double znormed_rms_dist_vec_slice(
+    const std::vector<double>& a,
+    const std::vector<double>& ts, int s2, int e2,
+    double n_threshold) {
+  int n = a.size();
+  double m1 = vec_mean(a);
+  double m2 = slice_mean(ts, s2, e2);
+  double sd1 = vec_stdev_pop(a, m1);
+  double sd2 = slice_stdev_pop(ts, s2, e2, m2);
+  bool raw1 = sd1 < n_threshold;
+  bool raw2 = sd2 < n_threshold;
+
+  double res = 0.0;
+  for (int i = 0; i < n; i++) {
+    double av = raw1 ? a[i] : (a[i] - m1) / sd1;
+    double b = raw2 ? ts[s2 + i] : (ts[s2 + i] - m2) / sd2;
+    double d = av - b;
+    res += d * d;
+  }
+  return std::sqrt(res) / n;
+}
+
+double znormed_rms_dist_precomputed(
+    const std::vector<double>& za, const std::vector<double>& zb) {
+  double res = 0.0;
+  int n = za.size();
+  for (int i = 0; i < n; i++) {
+    double d = za[i] - zb[i];
+    res += d * d;
+  }
+  return std::sqrt(res) / n;
+}
+
+} // namespace
+
+double _normalized_distance(int start1, int end1, int start2, int end2,
+                            const std::vector<double>& series, double n_threshold,
+                            int w_size,
+                            const std::vector<std::vector<double>>* znorm_windows) {
+
   int len1 = end1 - start1;
   int len2 = end2 - start2;
-  int count = std::min(len1, len2);
 
-  std::vector<double> a, b;
-  if(len1 == len2){
-    a.assign(series->begin() + start1, series->begin() + end1);
-    b.assign(series->begin() + start2, series->begin() + end2);
-  } else if(len1 < len2){
-    a.assign(series->begin() + start1, series->begin() + end1);
-    std::vector<double> longer(series->begin() + start2, series->begin() + end2);
-    b = _paa2(longer, len1);
-  } else {
-    b.assign(series->begin() + start2, series->begin() + end2);
-    std::vector<double> longer(series->begin() + start1, series->begin() + end1);
-    a = _paa2(longer, len2);
+  if (znorm_windows != nullptr && len1 == w_size && len2 == w_size &&
+      start1 >= 0 && start2 >= 0 &&
+      start1 < (int)znorm_windows->size() &&
+      start2 < (int)znorm_windows->size()) {
+    return znormed_rms_dist_precomputed(
+        znorm_windows->at(start1), znorm_windows->at(start2));
   }
 
-  std::vector<double> za = _znorm(a, n_threshold);
-  std::vector<double> zb = _znorm(b, n_threshold);
-  for(int i=0; i<count; i++){
-    res = res + (za[i] - zb[i]) * (za[i] - zb[i]);
+  static thread_local std::vector<double> paa_buf;
+
+  if (len1 == len2) {
+    return znormed_rms_dist_equal(series, start1, end1, start2, end2, n_threshold);
   }
-  return sqrt(res) / (double) count;
+  if (len1 < len2) {
+    _paa2_range(series, start2, end2, len1, paa_buf);
+    return znormed_rms_dist_slice_vec(series, start1, end1, paa_buf, n_threshold);
+  }
+  _paa2_range(series, start1, end1, len2, paa_buf);
+  return znormed_rms_dist_vec_slice(paa_buf, series, start2, end2, n_threshold);
 }
 
 double _shrinked_distance(int start1, int end1, int start2, int end2, std::vector<double> *series){
@@ -95,9 +207,10 @@ double _mean(std::vector<int> *ts, int *start, int *end){
 }
 
 rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
-      std::unordered_map<int, rule_record*> *grammar, std::vector<int> *indexes,
+      std::unordered_map<int, rule_record> *grammar, std::vector<int> *indexes,
       std::vector<rule_interval> *intervals,
       std::unordered_set<int> *global_visited_positions, double n_threshold,
+      const std::vector<std::vector<double>>* znorm_windows,
       int seed = -1){
 
   // *****
@@ -158,7 +271,7 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
     //   " for rule " << c_interval.rule_id <<
     //    ", best so far dist " << bestSoFarDistance << std::endl;
 
-    auto this_rule_occurrences = grammar->at(c_interval.rule_id)->rule_intervals;
+    auto this_rule_occurrences = grammar->at(c_interval.rule_id).rule_intervals;
 //     Rcout << "   going to iterate over " << this_rule_occurrences.size() <<
 //      " rule occurrences first " << std::endl;
 
@@ -174,7 +287,8 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
          // end << std::endl;
         distance_calls_counter++;
         double dist = _normalized_distance(c_interval.start, c_interval.end,
-                                          start, end, ts, n_threshold);
+                                          start, end, *ts, n_threshold,
+                                          w_size, znorm_windows);
         // keep track of best so far distance
         if (dist < nn_distance) {
           // Rcout << "    better nn distance found " << dist << std::endl;
@@ -255,7 +369,8 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
         distance_calls_counter++;
         double dist = _normalized_distance(
           c_interval.start, c_interval.end,
-          randomInterval.start, randomInterval.end, ts, n_threshold
+          randomInterval.start, randomInterval.end, *ts, n_threshold,
+          w_size, znorm_windows
         );
 
         if (dist < bestSoFarDistance) {
@@ -403,7 +518,7 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
   //
   // *****
   // tstart = std::chrono::system_clock::now();
-  std::unordered_map<int, rule_record*> grammar = _str_to_repair_grammar(sax_str);
+  std::unordered_map<int, rule_record> grammar = _str_to_repair_grammar(sax_str);
 
   // ****
   // tend = std::chrono::system_clock::now();
@@ -423,7 +538,7 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
     if(0 == it->first){
       continue; // skip R0
     }
-    for(auto rit = (it->second)->rule_intervals.begin(); rit != (it->second)->rule_intervals.end(); ++rit) {
+    for(auto rit = it->second.rule_intervals.begin(); rit != it->second.rule_intervals.end(); ++rit) {
       int t_start = rit->first;
       int t_end = rit->second;
       // start and end here is for the string tokens, not for time series points
@@ -444,17 +559,17 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
       // GrammarVizAnomaly.java:740): RULE FREQUENCY -- the number of
       // occurrences of this interval's grammar rule, NOT per-point coverage.
       // A rule seen once is, by construction, the most anomalous pattern.
-      rr.cover = (double) (it->second)->rule_intervals.size();
+      rr.cover = (double) it->second.rule_intervals.size();
       intervals.push_back(rr);
     }
   }
 
   // we need to examine the coverage curve for continous zero intervals and mark those
   //
-  rule_record* rec_zero_cover = new rule_record();
-  rec_zero_cover->rule_id = -1;
-  rec_zero_cover->rule_string = "xxx";
-  rec_zero_cover->expanded_rule_string = "xxx";
+  rule_record rec_zero_cover;
+  rec_zero_cover.rule_id = -1;
+  rec_zero_cover.rule_string = "xxx";
+  rec_zero_cover.expanded_rule_string = "xxx";
   bool need_placement = false;
   int start = -1;
   bool in_interval = false;
@@ -528,8 +643,8 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
         ri.end=i;
         ri.rule_id=-1;
 
-        rec_zero_cover->rule_occurrences.push_back(start);
-        rec_zero_cover->rule_intervals.push_back(std::make_pair(start, i));
+        rec_zero_cover.rule_occurrences.push_back(start);
+        rec_zero_cover.rule_intervals.push_back(std::make_pair(start, i));
 
         // NOTE: this interval was previously push_back'd TWICE (once before and
         // once after the rec_zero_cover bookkeeping), duplicating every
@@ -548,13 +663,7 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
   }
 
   if(need_placement) {
-    grammar.emplace(std::make_pair(-1, rec_zero_cover));
-  } else {
-    // Fix-1 makes the "no zero run survived the guard" path reachable for the
-    // first time (previously every closed run set need_placement = true and
-    // rec_zero_cover was always emplaced into `grammar`). Free the unused
-    // heap-allocated record here so the new path does not leak it.
-    delete rec_zero_cover;
+    grammar.emplace(-1, rec_zero_cover);
   }
 
   // Rank the candidate intervals "rarest first" so the early-abandoning NN
@@ -614,6 +723,12 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
   std::unordered_set<int> global_visited_positions;
   // global_visited_positions.reserve(ts.size());
 
+  int n_windows = (int)ts.size() - w_size + 1;
+  std::vector<std::vector<double>> znorm_windows(n_windows);
+  for (int wi = 0; wi < n_windows; wi++) {
+    _znorm_slice(ts, wi, wi + w_size, n_threshold, znorm_windows[wi]);
+  }
+
   std::vector<rra_discord_record> discords;
 
   while((int) discords.size() < discords_num){
@@ -621,7 +736,8 @@ Rcpp::DataFrame find_discords_rra(NumericVector series, int w_size, int paa_size
     // tstart = std::chrono::system_clock::now();
 
     rra_discord_record d = find_best_rra_discord(&ts, w_size, &grammar,
-                              &indexes, &intervals, &global_visited_positions, n_threshold, seed);
+                              &indexes, &intervals, &global_visited_positions, n_threshold,
+                              &znorm_windows, seed);
     // Rcout << d.nn_distance;
 
     if(d.nn_distance<0){

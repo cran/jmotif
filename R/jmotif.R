@@ -70,10 +70,10 @@ min_dist <- function(str1, str2, alphabet_size, compression_ratio = 1) {
   }
 }
 
-#' Computes the cosine similarity between numeric vectors
+#' Computes the cosine distance between numeric vectors (1 minus cosine similarity).
 #'
-#' @param m the data matrix
-#' @return Returns the cosine similarity
+#' @param m the data matrix (rows are vectors).
+#' @return A \code{dist} object of pairwise cosine distances.
 #' @export
 #' @examples
 #' a <- c(2, 1, 0, 2, 0, 1, 1, 1)

@@ -291,17 +291,7 @@ Rcpp::DataFrame cosine_sim(Rcpp::List data) {
 
   std::map< std::string, int > bag;
   for(unsigned i=0;i<bag_words.size();i++){
-
-    // Rcout << i << ": " << bag_words[i] << "\n";
-
-    std::string e_key = bag_words[i];
-    char * new_key = new char [e_key.size()+1];
-    std::copy(e_key.begin(), e_key.end(), new_key);
-    new_key[e_key.size()] = '\0';
-
-    // Rcout << new_key << " : " <<  bag_counts[i] <<"\n";
-
-    bag.insert( std::make_pair(new_key, bag_counts[i]) );
+    bag[bag_words[i]] = bag_counts[i];
   }
 
   DataFrame tfidf = (Rcpp::DataFrame) data["tfidf"];
@@ -332,15 +322,10 @@ Rcpp::DataFrame cosine_sim(Rcpp::List data) {
   std::vector<std::string> class_names(tfidf_classes.size()-1);
   for(unsigned i=1; i<tfidf_classes.size(); i++){
 
-    //class_names[i] = tfidf_classes[i];
     std::string e_key = tfidf_classes[i];
-    char * new_key = new char [e_key.size()+1];
-    std::copy(e_key.begin(), e_key.end(), new_key);
-    new_key[e_key.size()] = '\0';
-    class_names[i-1] = new_key;
-    // Rcout << new_key << "\n";
+    class_names[i-1] = e_key;
 
-    NumericVector tfidf_values = tfidf[new_key];
+    NumericVector tfidf_values = tfidf[e_key];
     // std::vector<double> tfidf_values = Rcpp::as< std::vector<double> > (tfidf[new_key]);
     // Rcout << tfidf_values.size() << "\n";
     double norm_a_squared = 0;

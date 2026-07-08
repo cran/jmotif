@@ -53,3 +53,33 @@ std::vector<double> _znorm(const std::vector<double>& ts, double threshold) {
   return diff;
 
 }
+
+void _znorm_slice(const std::vector<double>& ts, int start, int end,
+                  double threshold, std::vector<double>& out) {
+  int len = end - start;
+  out.resize(len);
+
+  double sum = 0.0;
+  for (int i = start; i < end; i++) {
+    sum += ts[i];
+  }
+  double mean = sum / len;
+
+  double sq_sum = 0.0;
+  for (int i = start; i < end; i++) {
+    double d = ts[i] - mean;
+    sq_sum += d * d;
+  }
+  double stdev = std::sqrt(sq_sum / len);
+
+  if (stdev < threshold) {
+    for (int i = start; i < end; i++) {
+      out[i - start] = ts[i];
+    }
+    return;
+  }
+
+  for (int i = start; i < end; i++) {
+    out[i - start] = (ts[i] - mean) / stdev;
+  }
+}

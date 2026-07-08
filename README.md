@@ -62,7 +62,7 @@ bug was fixed), so SAX words and discord positions near a breakpoint may differ
 from earlier releases. See the version notes at the bottom.
 
 #### Citing this work:
-While RRA was proposed in [8], the code was ported in R to assist for our newer development in SAX parameters optimization: [Grammarviz 3.0](https://dl.acm.org/doi/10.1145/3051126), please cite it: Senin, P., Lin, J., Wang, X., Oates, T., Gandhi, S., Boedihardjo, A.P., Chen, C., Frankenstein, S.,  [*GrammarViz 3.0: Interactive Discovery of Variable-Length Time Series Patterns*](https://github.com/csdl/techreports/blob/master/techreports/2017/17-04/17-04.pdf), ACM Trans. Knowl. Discov. Data, February 2018. [[Click here for Citation BibTeX]](https://raw.githubusercontent.com/jMotif/SAX/master/citation.bib)
+While RRA was proposed in [8], the code was ported in R to assist for our newer development in SAX parameters optimization: [Grammarviz 3.0](https://doi.org/10.1145/3051126), please cite it: Senin, P., Lin, J., Wang, X., Oates, T., Gandhi, S., Boedihardjo, A.P., Chen, C., Frankenstein, S.,  [*GrammarViz 3.0: Interactive Discovery of Variable-Length Time Series Patterns*](https://github.com/csdl/techreports/blob/master/techreports/2017/17-04/17-04.pdf), ACM Trans. Knowl. Discov. Data, February 2018. [[Click here for Citation BibTeX]](https://raw.githubusercontent.com/jMotif/SAX/master/citation.bib)
 
 #### Notes:
 In order to process sets of timeseries with uneven length, pad shorter with NA within the input data frame (list). Window-based SAX discretization procedure (sliding window left to right) will detect NA within right side of sliding window and abandon any further processing for the current time series continuing to the next.  
@@ -70,7 +70,7 @@ In order to process sets of timeseries with uneven length, pad shorter with NA w
 #### References:
 
 [1] Dina Goldin and Paris Kanellakis,
-[*On similarity queries for time-series data: Constraint specification and implementation*](https://dl.acm.org/doi/10.1145/726176),
+[*On similarity queries for time-series data: Constraint specification and implementation*](https://doi.org/10.1007/3-540-60299-2_9),
 In Principles and Practice of Constraint Programming – CP ’95, pages 137–153. (1995)
 
 [2] Keogh, E., Chakrabarti, K., Pazzani, M., & Mehrotra, S., 
@@ -80,7 +80,7 @@ Knowledge and information Systems, 3(3), 263-286. (2001)
 [3] Lonardi, S., Lin, J., Keogh, E., & Patel, P., 
 [*Finding motifs in time series*](https://scholar.google.com/scholar?cluster=9053042128452360340&hl=en&as_sdt=0,5), In Proc. of the 2nd Workshop on Temporal Data Mining (pp. 53-68). (2002)
 
-[4] Salton, G., Wong, A., Yang., C., [*A vector space model for automatic indexing*](https://dl.acm.org/doi/10.1145/361219.361220), Commun. ACM 18, 11, 613–620, 1975.
+[4] Salton, G., Wong, A., Yang., C., [*A vector space model for automatic indexing*](https://doi.org/10.1145/361219.361220), Commun. ACM 18, 11, 613–620, 1975.
 
 [5] Senin Pavel and Malinchik Sergey, 
 [*SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.*](https://scholar.google.fr/citations?view_op=view_citation&citation_for_view=pVTcEd8AAAAJ:5nxA0vEk-isC),
@@ -90,7 +90,7 @@ Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-
 [*HOT SAX: Efficiently finding the most unusual time series subsequence*](https://www.cs.ucr.edu/~eamonn/HOT%20SAX%20%20long-ver.pdf),
 In Proc. ICDM (2005)
 
-[7] N.J. Larsson and A. Moffat. [*Offline dictionary-based compression.*](https://ieeexplore.ieee.org/document/755679), In Data Compression Conference, 1999.
+[7] N.J. Larsson and A. Moffat. [*Offline dictionary-based compression.*](https://doi.org/10.1109/dcc.1999.755679), In Data Compression Conference, 1999.
 
 [8] Pavel Senin, Jessica Lin , Xing Wang, Tim Oates, Sunil Gandhi, Arnold P. Boedihardjo, Crystal Chen, Susan Frankenstein, [*Time series anomaly discovery with grammar-based compression.*](https://openproceedings.org/2015/conf/edbt/paper-155.pdf), In Proc. of The International Conference on Extending Database Technology, EDBT 15.
 

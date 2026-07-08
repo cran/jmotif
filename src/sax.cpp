@@ -236,7 +236,7 @@ std::string _series_to_string(std::vector<double> ts, int a_size) {
 }
 
 std::unordered_map<int, std::string> _sax_via_window(
-    std::vector<double> ts, int w_size, int paa_size, int a_size,
+    const std::vector<double>& ts, int w_size, int paa_size, int a_size,
     std::string nr_strategy, double n_threshold) {
 
   std::unordered_map<int, std::string> idx2word;
@@ -244,12 +244,13 @@ std::unordered_map<int, std::string> _sax_via_window(
   bool strategy_mindist = is_equal_str("mindist", nr_strategy);
 
   std::string old_str;
-
-  //Rcout << "series length " << ts.size() << ", window " << w_size << std::endl;
+  std::vector<double> znorm_buf;
+  znorm_buf.reserve(w_size);
+  std::vector<double> paa_buf;
+  paa_buf.reserve(paa_size);
 
   for (unsigned i = 0; i <= ts.size() - w_size; i++) {
 
-    // check if NA is encountered
     int idx = i + w_size - 1;
     if(R_IsNA(ts[idx])) {
       size_t size = std::snprintf(nullptr, 0, "encountered an Na and stopped processing at %i", i + w_size - 1) + 1;
@@ -261,23 +262,16 @@ std::unordered_map<int, std::string> _sax_via_window(
       break;
     }
 
-    // subseries extraction
-    // std::vector<double>::const_iterator first = ts.begin() + i;
-    // std::vector<double>::const_iterator last = ts.begin() + i + w_size;
-    // std::vector<double> subSection(first, last);
-    std::vector<double> subSection = _subseries(&ts, i, i + w_size);
+    _znorm_slice(ts, (int)i, (int)i + w_size, n_threshold, znorm_buf);
+    paa_buf = _paa2(znorm_buf, paa_size);
 
-    subSection = _znorm(subSection, n_threshold);
-
-    subSection = _paa(subSection, paa_size);
-
-    std::string curr_str = _series_to_string(subSection, a_size);
+    std::string curr_str = _series_to_string(paa_buf, a_size);
 
     if (!(old_str.empty())) {
       if (strategy_exact && old_str==curr_str) {
         continue;
       }
-      else if (strategy_mindist && is_equal_mindist(old_str, curr_str) ) {
+      else if (strategy_mindist && _is_equal_mindist(old_str, curr_str) ) {
         continue;
       }
     }
@@ -286,7 +280,6 @@ std::unordered_map<int, std::string> _sax_via_window(
 
     old_str = curr_str;
   }
-
 
   return idx2word;
 }
@@ -319,74 +312,11 @@ std::map<int, std::string> sax_via_window(
     forward_exception_to_r(ex);
   }
 
-  std::vector<double> series = Rcpp::as< std::vector<double> > (ts);
-  bool strategy_exact = is_equal_str("exact", nr_strategy);
-  bool strategy_mindist = is_equal_str("mindist", nr_strategy);
-
-  std::map<int, std::string> idx2word;
-
-  // std::ofstream bw("test_outR.txt");
-
-  std::string old_str("");
-
-  for (unsigned i = 0; i <= series.size() - w_size; i++) {
-
-    // check if NA is encountered
-    int idx = i + w_size - 1;
-    if(R_IsNA(ts[idx])) {
-      size_t size = std::snprintf(nullptr, 0, "encountered an Na and stopped processing at %i", i + w_size - 1) + 1;
-      std::unique_ptr<char[]> buf( new char[ size ] );
-      std::snprintf( buf.get(), size, "encountered an Na and stopped processing at %i", i + w_size - 1 );
-      Rcpp::warning(
-        std::string( buf.get(), buf.get() + size - 1 )
-      );
-      break;
-    }
-
-    NumericVector subSection = subseries(ts, i, i + w_size);
-    std::vector<double>::const_iterator first = series.begin() + i;
-    std::vector<double>::const_iterator last = series.begin() + i + w_size;
-    std::vector<double> sub_section(first, last);
-
-    // bw << i << "\t[" ;
-    // for (auto i = subSection.begin(); i != subSection.end(); ++i)
-    //   bw << *i << ',';
-    // bw << "]\t" ;
-
-    sub_section = _znorm(sub_section, n_threshold);
-
-    sub_section = _paa(sub_section, paa_size);
-    // bw << "[" ;
-    // for (auto i = subSection.begin(); i != subSection.end(); ++i)
-    //   bw << *i << ',';
-    // bw << "]\t" ;
-
-    std::string curr_str = _series_to_string(sub_section, a_size);
-    // bw << curr_str << "\t" ;
-
-    if (!(0 == old_str.length())) {
-      if ( strategy_exact
-             && old_str == curr_str ) {
-        // std::cout << std::endl;
-        // bw << "skipped\n" ;
-        continue;
-      }
-      else if (strategy_mindist
-                 && is_equal_mindist(old_str, curr_str) ) {
-        // std::cout << std::endl;
-        continue;
-      }
-    }
-
-    idx2word.insert(std::make_pair(i, curr_str));
-
-    old_str = curr_str;
-
-    // std::cout << " " << curr_str << std::endl;
-    // bw << "kept\n" ;
-  }
-  // bw.close();
-  return idx2word;
+  std::vector<double> series = Rcpp::as<std::vector<double>>(ts);
+  std::string nr = Rcpp::as<std::string>(nr_strategy);
+  std::unordered_map<int, std::string> um = _sax_via_window(
+      series, w_size, paa_size, a_size, nr, n_threshold);
+  return std::map<int, std::string>(um.begin(), um.end());
 }
 
 //' Discretize a time series with SAX using chunking (no sliding window).
