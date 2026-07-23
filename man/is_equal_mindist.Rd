@@ -15,6 +15,6 @@ is_equal_mindist(a, b)
 Compares two strings using mindist.
 }
 \examples{
-is_equal_str("aaa", "bbb") # true
-is_equal_str("aaa", "ccc") # false
+is_equal_mindist("aaa", "bbb") # true
+is_equal_mindist("aaa", "ccc") # false
 }

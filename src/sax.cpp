@@ -299,6 +299,9 @@ std::unordered_map<int, std::string> _sax_via_window(
 //' @references Lonardi, S., Lin, J., Keogh, E., Patel, P.,
 //' Finding motifs in time series.
 //' In Proc. of the 2nd Workshop on Temporal Data Mining (pp. 53-68). (2002)
+//' @examples
+//' data(ecg0606)
+//' head(sax_via_window(ecg0606, 100, 4, 4, "exact", 0.01))
 // [[Rcpp::export]]
 std::map<int, std::string> sax_via_window(
     NumericVector ts, int w_size, int paa_size, int a_size,

@@ -12,6 +12,18 @@ cosine_sim(data)
 \description{
 Computes the cosine distance value between a bag of words and a set of TF-IDF weight vectors.
 }
+\examples{
+data(CBF)
+w <- 60; p <- 6; a <- 6
+train <- CBF[["data_train"]]
+bag1 <- manyseries_to_wordbag(train[CBF[["labels_train"]] == 1, ], w, p, a, "exact", 0.01)
+bag2 <- manyseries_to_wordbag(train[CBF[["labels_train"]] == 2, ], w, p, a, "exact", 0.01)
+bag3 <- manyseries_to_wordbag(train[CBF[["labels_train"]] == 3, ], w, p, a, "exact", 0.01)
+tfidf <- bags_to_tfidf(list(cylinder = bag1, bell = bag2, funnel = bag3))
+sample <- CBF[["data_test"]][CBF[["labels_test"]] == 3, ][1, ]
+bag <- series_to_wordbag(sample, w, p, a, "exact", 0.01)
+cosine_sim(list(bag = bag, tfidf = tfidf))
+}
 \references{
 Senin Pavel and Malinchik Sergey,
 SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.

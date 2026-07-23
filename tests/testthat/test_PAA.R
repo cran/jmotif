@@ -5,6 +5,7 @@ test_that("points to points via PAA", {
   expect_equal(paa(y, 3), v)
   expect_equal(paa(y, 8), y)
   expect_equal(paa(y, 2), c(-1, 1))
+  expect_error(paa(y, 0))
 })
 
 

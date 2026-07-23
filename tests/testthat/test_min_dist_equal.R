@@ -22,4 +22,6 @@ test_that("testing min_dist", {
   expect_error(min_dist(str1, str3, 2))
 
   expect_error(min_dist(str1, str3[1:2], 2))
+
+  expect_error(min_dist("A", "a", 26))
 })

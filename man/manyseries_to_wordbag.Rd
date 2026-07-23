@@ -22,6 +22,11 @@ manyseries_to_wordbag(data, w_size, paa_size, a_size, nr_strategy, n_threshold)
 \description{
 Converts a set of time-series into a single bag of words.
 }
+\examples{
+data(CBF)
+train <- CBF[["data_train"]]
+manyseries_to_wordbag(train[CBF[["labels_train"]] == 1, ], 60, 6, 6, "exact", 0.01)
+}
 \references{
 Senin Pavel and Malinchik Sergey,
 SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.

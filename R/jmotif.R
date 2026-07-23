@@ -15,23 +15,23 @@ NULL
 sax_distance_matrix <- function(a_size) {
   if (a_size > 1 && a_size <= 20) {
     cutlines <- jmotif::alphabet_to_cuts(a_size)[2:a_size]
-    distance_matrix <- matrix(rep(0, a_size * a_size), byrow = T, nrow = a_size, ncol = a_size)
+    distance_matrix <- matrix(rep(0, a_size * a_size), byrow = TRUE, nrow = a_size, ncol = a_size)
     i <- 1
     while (i <= a_size) {
       # the min_dist for adjacent symbols are 0, so we start with i+2
-      j <- i + 2;
+      j <- i + 2
       while (j <= a_size) {
         # square the distance now for future use
-        distance_matrix[i,j] <- (cutlines[i] - cutlines[j - 1]) * (cutlines[i] - cutlines[j - 1])
+        distance_matrix[i, j] <- (cutlines[i] - cutlines[j - 1]) * (cutlines[i] - cutlines[j - 1])
         # the distance matrix is symmetric
-        distance_matrix[j,i] <- distance_matrix[i,j]
+        distance_matrix[j, i] <- distance_matrix[i, j]
         j <- j + 1
       }
       i <- i + 1
     }
     distance_matrix
   } else {
-    stop(paste("unable to get a distance matrix for the alphabet size",a_size))
+    stop(paste("unable to get a distance matrix for the alphabet size", a_size))
   }
 }
 
@@ -53,18 +53,19 @@ sax_distance_matrix <- function(a_size) {
 min_dist <- function(str1, str2, alphabet_size, compression_ratio = 1) {
   if (length(str1) != length(str2)) {
     stop("error: the strings must have equal length")
-  }else{
-    if ( any(letters_to_idx(str1) > alphabet_size) |
-        any(letters_to_idx(str2) > alphabet_size)) {
-           stop('error: some symbol(s) in the string(s) exceed(s)
-                the alphabet size!');
-    }else{
+  } else {
+    if (any(letters_to_idx(str1) > alphabet_size) ||
+          any(letters_to_idx(str2) > alphabet_size) ||
+          any(letters_to_idx(str1) < 1) ||
+          any(letters_to_idx(str2) < 1)) {
+      stop("error: some symbol(s) in the string(s) exceed(s) the alphabet size!")
+    } else {
       dist_table <- sax_distance_matrix(alphabet_size)
       dist <- 0
       dist <- sqrt(
-         compression_ratio *
+        compression_ratio *
           sum(diag(dist_table[letters_to_idx(str1), letters_to_idx(str2)]) ^ 2)
-        )
+      )
       dist
     }
   }
@@ -80,5 +81,9 @@ min_dist <- function(str1, str2, alphabet_size, compression_ratio = 1) {
 #' b <- c(2, 1, 1, 1, 1, 0, 1, 1)
 #' sim <- cosine_dist(rbind(a,b))
 cosine_dist <- function(m) {
-  stats::as.dist(1 - m %*% t(m) / (sqrt(rowSums(m ^ 2) %*% t(rowSums(m ^ 2)))))
+  norms_sq <- rowSums(m ^ 2)
+  denom <- sqrt(norms_sq %*% t(norms_sq))
+  sim <- m %*% t(m) / denom
+  sim[denom == 0] <- 0
+  stats::as.dist(1 - sim)
 }

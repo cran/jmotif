@@ -8,6 +8,8 @@ test_that("idx to letter", {
 test_that("letter to idx", {
   expect_true(is.numeric(letter_to_idx('c')))
   expect_equal(letter_to_idx('c'), 3)
+  expect_error(letter_to_idx('A'))
+  expect_error(letter_to_idx('1'))
 })
 
 test_that("letters to idx", {

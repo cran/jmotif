@@ -33,6 +33,10 @@ std::vector<double> _paa2(const std::vector<double>& ts, int paa_num) {
 
   int len = ts.size();
 
+  if (paa_num < 1) {
+    stop("'paa_num' must be at least 1");
+  }
+
   if(len < paa_num){
     stop("'paa_num' size is invalid");
   }

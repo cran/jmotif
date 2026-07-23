@@ -218,7 +218,9 @@ rra_discord_record find_best_rra_discord(std::vector<double> *ts, int w_size,
   // tstart0 = std::chrono::system_clock::now();
   int distance_calls_counter = 0;
 
-  std::vector<int> visit_array(ts->size(), -1);
+  // One entry per candidate interval index (not ts length — grammar intervals
+  // can outnumber series points and the old ts->size() buffer overflowed here).
+  std::vector<int> visit_array(intervals->size(), -1);
 
   //   for(auto it=intervals.begin(); it!=intervals.end(); ++it){
   //     Rcout << "R" << it->rule_id << " covr " << it->cover << std::endl;

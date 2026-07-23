@@ -22,6 +22,11 @@ series_to_wordbag(ts, w_size, paa_size, a_size, nr_strategy, n_threshold)
 \description{
 Converts a single time series into a bag of words.
 }
+\examples{
+data(CBF)
+sample <- CBF[["data_test"]][CBF[["labels_test"]] == 1, ][1, ]
+series_to_wordbag(sample, 60, 6, 6, "exact", 0.01)
+}
 \references{
 Senin Pavel and Malinchik Sergey,
 SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model.

@@ -4,7 +4,13 @@
 \alias{find_discords_brute_force}
 \title{Finds a discord using brute force algorithm.}
 \usage{
-find_discords_brute_force(ts, w_size, discords_num, n_threshold = 0.01, seed = -1L)
+find_discords_brute_force(
+  ts,
+  w_size,
+  discords_num,
+  n_threshold = 0.01,
+  seed = -1L
+)
 }
 \arguments{
 \item{ts}{the input timeseries.}
@@ -16,9 +22,9 @@ find_discords_brute_force(ts, w_size, discords_num, n_threshold = 0.01, seed = -
 \item{n_threshold}{the z-normalization threshold.}
 
 \item{seed}{the random seed for the candidate visit order; a negative value
-(the default) leaves it non-reproducible, a non-negative value makes the search
-trajectory (and its distance-call count) reproducible. The reported discords are
-identical either way.}
+(the default) leaves it non-reproducible, a non-negative value makes the
+search trajectory (and its distance-call count) reproducible. The reported
+discords are identical either way.}
 }
 \description{
 Finds a discord using brute force algorithm.

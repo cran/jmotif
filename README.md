@@ -4,20 +4,19 @@
  * **[SAX](https://github.com/jMotif/jmotif-R#30-sax-transform)**, i.e., Symbolic Aggregate approXimation
  * **[HOT-SAX](https://github.com/jMotif/jmotif-R#70-hot-sax-algorithm-for-time-series-discord-discovery)**, an algorithm for the exact time series discord discovery
  * **[VSM](https://github.com/jMotif/jmotif-R#52-tfidf-weighting)**, i.e., Vector Space Model
- * **[SAX-VSM](https://github.com/jMotif/jmotif-R#70-hot-sax-algorithm-for-time-series-discord-discovery)**, an algorithm for interpretable time series classification (and parameters optimization)
- * **[RePair](https://github.com/jMotif/jmotif-R#70-grammatical-inference-with-repair)**, an algorithm for grammatical inference
+ * **[SAX-VSM](https://github.com/jMotif/jmotif-R#50-sax-vsm-classifier)**, an algorithm for interpretable time series classification (and parameters optimization)
+ * **[RePair](https://github.com/jMotif/jmotif-R#71-grammatical-inference-with-repair)**, an algorithm for grammatical inference
  * **[Rule Density Curve](https://github.com/jMotif/jmotif-R#80-rule-density-curve)**, an efficient grammatical compression (i.e. [Kolmogorov Complexity](https://en.wikipedia.org/wiki/Kolmogorov_complexity)) -based technique for variable length approximate time series anomaly discovery
  * **[RRA](https://github.com/jMotif/jmotif-R#90-rare-rule-anomaly-algorithm)** (Rare Rule Anomaly), a grammatical compression (i.e. [Kolmogorov Complexity](https://en.wikipedia.org/wiki/Kolmogorov_complexity)) -based algorithm for variable length exact time series anomaly discovery
  
 
-[![Build Status](https://app.travis-ci.com/jMotif/jmotif-R.svg?branch=master)](https://app.travis-ci.com/jMotif/jmotif-R)
-[![codecov.io](https://app.codecov.io/github/jMotif/jmotif-R/coverage.svg?branch=master)](https://app.codecov.io/github/jMotif/jmotif-R?branch=master)
+[![R-CMD-check](https://github.com/jMotif/jmotif-R/actions/workflows/devcheck.yml/badge.svg)](https://github.com/jMotif/jmotif-R/actions/workflows/devcheck.yml)
+[![coverage](https://app.codecov.io/github/jMotif/jmotif-R/graph/badge.svg?branch=master)](https://app.codecov.io/github/jMotif/jmotif-R?branch=master)
 [![CRAN](https://www.r-pkg.org/badges/version/jmotif)](https://cran.r-project.org/package=jmotif)
-[![License](https://img.shields.io/:license-gpl2-green.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
-[![Downloads from Rstudio mirror per month](https://cranlogs.r-pkg.org/badges/jmotif?color=brightgreen)](https://www.r-pkg.org/pkg/jmotif)
-[![Downloads from Rstudio mirror](https://cranlogs.r-pkg.org/badges/grand-total/jmotif?color=brightgreen)](https://www.r-pkg.org/pkg/jmotif)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![downloads](https://cranlogs.r-pkg.org/badges/jmotif?color=brightgreen)](https://www.r-pkg.org/pkg/jmotif)
 
-#### Most of this functionality is also implemented in [Java](https://github.com/jMotif/SAX) and some in [Python](https://github.com/seninp/saxpy) as well...
+#### Most of this functionality is also implemented in [Java](https://github.com/jMotif/SAX) and [Python (saxpy on PyPI)](https://pypi.org/project/saxpy/2.0.1/) as well...
 
 #### Cross-implementation alignment
 
@@ -95,7 +94,17 @@ In Proc. ICDM (2005)
 [8] Pavel Senin, Jessica Lin , Xing Wang, Tim Oates, Sunil Gandhi, Arnold P. Boedihardjo, Crystal Chen, Susan Frankenstein, [*Time series anomaly discovery with grammar-based compression.*](https://openproceedings.org/2015/conf/edbt/paper-155.pdf), In Proc. of The International Conference on Extending Database Technology, EDBT 15.
 
 
-#### 0.0 Installation from latest sources
+#### 0.0 Installation
+
+From CRAN (stable):
+
+    install.packages("jmotif")
+
+GitHub `master` is at **1.3.2** (RRA buffer fix + tier-B tests); CRAN may still list
+**1.3.1** until the next release is accepted. See [NEWS.md](NEWS.md).
+
+For the development version from GitHub:
+
     install.packages("devtools")
     library(devtools)
     install_github('jMotif/jmotif-R')
@@ -541,7 +550,7 @@ The output is already ordered by the nearest neighbor distance; `dplyr` can be u
     4    2.375541       25          37458
     5    2.064930     1198          51536
 
-#### 7.0 Grammatical inference with RePair
+#### 7.1 Grammatical inference with RePair
 RePair is a dictionary-based compression method proposed in 1999 by Larsson and Moffat. In contrast with Sequitur, Repair is an *off-line algorithm* that requires the whole input sequence to be accessible before building a grammar. Similar to Sequitur, RePair also can be utilized as a grammar-based compressor able to discover a compact grammar that generates the text. It is a remarkably simple algorithm which is known for its very fast decompression. 
 
 In short, RePair performs a recursive pairing step -- finding the most frequent pair of symbols in the input sequence and replacing it with a new symbol -- until every pair appears only once.
@@ -657,7 +666,7 @@ and use RePair implementation to build the grammar curve:
 #### 9.0 Rare Rule Anomaly algorithm.
 RRA (i.e., Rare Rule Anomaly) algorithm extends the HOT-SAX algorithm leveraging the grammatical compression properties (i.e. algorithmic, or Kolmogorov complexity properties). In contrast with the original algorithm, whose input is a set of time series subsequences extracted from the input time series via sliding window, RRA operates on the set of time series subsequences which correspond to a grammar' rules. The grammar, whose rules are used in RRA, is built by a grammar inference algorithm run on the set of tokens which are obtained by time series discretization with SAX and a sliding window (i.e. a HOT-SAX input). jmotif-R is using Re-Pair algorithm for grammatical inference.
 
-Since each of the grammar rules consists of terminal and non-terminal tokens, the subsequences corresponding to rules naturally vary in length. Moreover, due to the compression properties of the utilized grammatical inference algorithm, which operates on digrams (i.e. pairs of subsequences extracted via sliding window), the amount of input subsequences for RAA is usually significantly lower than those extracted via sliding window for HOT-SAX, which improves the efficiency of HOT-SAX inner and outer loops by reducing the number of calls to the distance function. 
+Since each of the grammar rules consists of terminal and non-terminal tokens, the subsequences corresponding to rules naturally vary in length. Moreover, due to the compression properties of the utilized grammatical inference algorithm, which operates on digrams (i.e. pairs of subsequences extracted via sliding window), the amount of input subsequences for RRA is usually significantly lower than those extracted via sliding window for HOT-SAX, which improves the efficiency of HOT-SAX inner and outer loops by reducing the number of calls to the distance function. 
 
 In addition to the above, RRA uses a different heuristics for the ordering in the HOT-SAX outer loop: instead of ordering subsequences by their occurrence frequency, the rule-corresponding subsequences are ordered according to the "rule coverage" values discussed above -- a value which reflects the compressibility of the subsequence. Naturally, we expect that incompressible subsequences correspond to potential anomalies.
 
@@ -673,4 +682,13 @@ distance value (not the discord position) can differ by a few percent between
 implementations whose visit orders differ. This is inherent to the heuristic --
 exactness of the distance is not guaranteed -- not a cross-implementation defect.
 
+## Version history
+
+Release notes live in [NEWS.md](NEWS.md). Highlights:
+
+| Version | Why it matters |
+|---------|----------------|
+| **1.3.2** | **Bug fix:** RRA no longer segfaults with `seed >= 0` (visit buffer overflow). Tier-B ecg0606 conformance tests. Docs/packaging polish. |
+| **1.3.1** | Memory-leak fixes; HOT-SAX / SAX-window / RRA speedups (same results). |
+| **1.3.0** | Cross-impl alignment with saxpy/Java (z-norm, PAA boundary, z-normed discord distances). **Behavior changes vs 1.2.x.** |
 

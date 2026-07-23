@@ -5,7 +5,15 @@
 \title{Finds a discord (i.e. time series anomaly) with HOT-SAX.
 Usually works the best with lower sizes of discretization parameters: PAA and Alphabet.}
 \usage{
-find_discords_hotsax(ts, w_size, paa_size, a_size, n_threshold, discords_num, seed = -1L)
+find_discords_hotsax(
+  ts,
+  w_size,
+  paa_size,
+  a_size,
+  n_threshold,
+  discords_num,
+  seed = -1L
+)
 }
 \arguments{
 \item{ts}{the input timeseries.}
@@ -20,10 +28,10 @@ find_discords_hotsax(ts, w_size, paa_size, a_size, n_threshold, discords_num, se
 
 \item{discords_num}{the number of discords to report.}
 
-\item{seed}{the random seed for the random-search visit order; a negative value
-(the default) leaves it non-reproducible, a non-negative value makes the search
-trajectory (and its distance-call count) reproducible. The reported discords are
-identical either way.}
+\item{seed}{the random seed for the random-search visit order; a negative
+value (the default) leaves it non-reproducible, a non-negative value makes
+the search trajectory (and its distance-call count) reproducible. The
+reported discords are identical either way.}
 }
 \description{
 Finds a discord (i.e. time series anomaly) with HOT-SAX.

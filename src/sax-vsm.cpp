@@ -15,6 +15,10 @@
 //' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
 //' @references Salton, G., Wong, A., Yang., C.,
 //' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+//' @examples
+//' data(CBF)
+//' sample <- CBF[["data_test"]][CBF[["labels_test"]] == 1, ][1, ]
+//' series_to_wordbag(sample, 60, 6, 6, "exact", 0.01)
 // [[Rcpp::export]]
 Rcpp::DataFrame series_to_wordbag(
     NumericVector ts, int w_size, int paa_size, int a_size,
@@ -66,6 +70,10 @@ Rcpp::DataFrame series_to_wordbag(
 //' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
 //' @references Salton, G., Wong, A., Yang., C.,
 //' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+//' @examples
+//' data(CBF)
+//' train <- CBF[["data_train"]]
+//' manyseries_to_wordbag(train[CBF[["labels_train"]] == 1, ], 60, 6, 6, "exact", 0.01)
 // [[Rcpp::export]]
 Rcpp::DataFrame manyseries_to_wordbag(
     NumericMatrix data, int w_size, int paa_size, int a_size,
@@ -280,6 +288,17 @@ Rcpp::DataFrame bags_to_tfidf(Rcpp::List data) {
 //' Data Mining (ICDM), 2013 IEEE 13th International Conference on, pp.1175,1180, 7-10 Dec. 2013.
 //' @references Salton, G., Wong, A., Yang., C.,
 //' A vector space model for automatic indexing. Commun. ACM 18, 11, 613-620, 1975.
+//' @examples
+//' data(CBF)
+//' w <- 60; p <- 6; a <- 6
+//' train <- CBF[["data_train"]]
+//' bag1 <- manyseries_to_wordbag(train[CBF[["labels_train"]] == 1, ], w, p, a, "exact", 0.01)
+//' bag2 <- manyseries_to_wordbag(train[CBF[["labels_train"]] == 2, ], w, p, a, "exact", 0.01)
+//' bag3 <- manyseries_to_wordbag(train[CBF[["labels_train"]] == 3, ], w, p, a, "exact", 0.01)
+//' tfidf <- bags_to_tfidf(list(cylinder = bag1, bell = bag2, funnel = bag3))
+//' sample <- CBF[["data_test"]][CBF[["labels_test"]] == 3, ][1, ]
+//' bag <- series_to_wordbag(sample, w, p, a, "exact", 0.01)
+//' cosine_sim(list(bag = bag, tfidf = tfidf))
 // [[Rcpp::export]]
 Rcpp::DataFrame cosine_sim(Rcpp::List data) {
 
@@ -338,7 +357,13 @@ Rcpp::DataFrame cosine_sim(Rcpp::List data) {
       norm_a_squared = norm_a_squared + a * a;
       norm_b_squared = norm_b_squared + b * b;
     }
-    cosines[i-1] = sum_a_dot_b / ( sqrt(norm_a_squared) * sqrt(norm_b_squared) );
+    double norm_a = sqrt(norm_a_squared);
+    double norm_b = sqrt(norm_b_squared);
+    if (norm_a == 0.0 || norm_b == 0.0) {
+      cosines[i-1] = 0.0;
+    } else {
+      cosines[i-1] = sum_a_dot_b / (norm_a * norm_b);
+    }
   }
 
   // make results

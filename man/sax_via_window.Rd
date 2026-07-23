@@ -23,6 +23,10 @@ any other value triggers no numerosity reduction.}
 \description{
 Discretizes a time series with SAX via sliding window.
 }
+\examples{
+data(ecg0606)
+head(sax_via_window(ecg0606, 100, 4, 4, "exact", 0.01))
+}
 \references{
 Lonardi, S., Lin, J., Keogh, E., Patel, P.,
 Finding motifs in time series.

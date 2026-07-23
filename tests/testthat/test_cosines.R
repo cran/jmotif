@@ -18,3 +18,19 @@ test_that("test cosine sim #1", {
   expect_equal(3, which(cosines$cosines == max(cosines$cosines)))
 
 })
+
+test_that("cosine_sim returns 0 for zero-norm bag", {
+
+  tfidf <- data.frame(
+    words = c("w1", "w2"),
+    classA = c(0, 0),
+    classB = c(1, 2),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  bag <- data.frame(words = character(0), counts = integer(0), stringsAsFactors = FALSE)
+  cosines <- cosine_sim(list(bag = bag, tfidf = tfidf))
+  expect_false(any(is.na(cosines$cosines)))
+  expect_equal(cosines$cosines, c(0, 0))
+
+})

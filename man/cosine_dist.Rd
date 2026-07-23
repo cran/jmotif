@@ -2,18 +2,18 @@
 % Please edit documentation in R/jmotif.R
 \name{cosine_dist}
 \alias{cosine_dist}
-\title{Computes the cosine similarity between numeric vectors}
+\title{Computes the cosine distance between numeric vectors (1 minus cosine similarity).}
 \usage{
 cosine_dist(m)
 }
 \arguments{
-\item{m}{the data matrix}
+\item{m}{the data matrix (rows are vectors).}
 }
 \value{
-Returns the cosine similarity
+A \code{dist} object of pairwise cosine distances.
 }
 \description{
-Computes the cosine similarity between numeric vectors
+Computes the cosine distance between numeric vectors (1 minus cosine similarity).
 }
 \examples{
 a <- c(2, 1, 0, 2, 0, 1, 1, 1)

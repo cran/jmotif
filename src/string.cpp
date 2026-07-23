@@ -27,6 +27,9 @@ char idx_to_letter(int idx) {
 //' letter_to_idx('b')
 // [[Rcpp::export]]
 int letter_to_idx(char letter) {
+  if (letter < 'a' || letter > 'z') {
+    stop("'letter' must be a lowercase letter in [a, z]");
+  }
   return letter - 96;
 }
 
@@ -70,8 +73,8 @@ bool is_equal_str(CharacterVector a, CharacterVector b) {
 //' @useDynLib jmotif
 //' @export
 //' @examples
-//' is_equal_str("aaa", "bbb") # true
-//' is_equal_str("aaa", "ccc") # false
+//' is_equal_mindist("aaa", "bbb") # true
+//' is_equal_mindist("aaa", "ccc") # false
 // [[Rcpp::export]]
 bool is_equal_mindist(CharacterVector a, CharacterVector b) {
   std::string ca = Rcpp::as<std::string>(a);

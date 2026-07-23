@@ -360,8 +360,8 @@ is_equal_str <- function(a, b) {
 #' @useDynLib jmotif
 #' @export
 #' @examples
-#' is_equal_str("aaa", "bbb") # true
-#' is_equal_str("aaa", "ccc") # false
+#' is_equal_mindist("aaa", "bbb") # true
+#' is_equal_mindist("aaa", "ccc") # false
 is_equal_mindist <- function(a, b) {
     .Call('_jmotif_is_equal_mindist', PACKAGE = 'jmotif', a, b)
 }
